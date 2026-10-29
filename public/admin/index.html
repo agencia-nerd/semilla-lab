@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#ffffff">
+  <title>Panel · Semilla Lab</title>
+  <link rel="icon" href="/assets/semilla-mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .admin { padding-top: 24px; padding-bottom: 64px; }
+    .anav { display: flex; overflow-x: auto; border: var(--b); margin-bottom: 24px; scrollbar-width: none; }
+    .anav button { flex: none; border: 0; border-right: var(--b2); background: var(--white); padding: 14px 22px; cursor: pointer; font: 700 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .anav button[aria-selected="true"] { background: var(--ink); color: var(--white); }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); border: var(--b); }
+    .stat { padding: 14px 18px; border-right: var(--b2); border-bottom: var(--b2); }
+    .stat b { display: block; font: 400 clamp(44px, 7vw, 68px)/.9 var(--display); letter-spacing: -.05em; margin-top: 8px; }
+    .stat.sun { background: var(--sun); }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 22px 0; }
+    .sec { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: var(--b); margin: 26px 0 0; }
+    .rank { list-style: none; margin: 0; padding: 0; }
+    .rank li { display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center; padding: 12px 0; border-bottom: var(--b2); animation: rise .5s var(--ease) both; animation-delay: calc(var(--i) * 40ms); }
+    .rank .n { width: 64px; height: 64px; display: grid; place-content: center; font: 400 34px/1 var(--display); letter-spacing: -.05em; background: var(--acc); color: var(--acc-fg); }
+    .rank h3 { margin: 0; font: 400 19px/1.05 var(--display); letter-spacing: -.02em; text-transform: uppercase; }
+    .rank .meta { margin-top: 4px; color: var(--mute); }
+    .rank .tags { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .rank .tags span { padding: 3px 6px; border: 2px solid var(--ink); font: 700 9.5px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+    .rank .bar { height: 10px; border: var(--b2); margin-top: 8px; }
+    .rank .bar i { display: block; height: 100%; background: var(--acc); transform-origin: left; animation: barX .9s var(--ease) both; }
+    .rank .score { text-align: right; font: 800 30px/1 var(--mono); letter-spacing: -.04em; }
+    .rank .score small { display: block; font-size: 10px; letter-spacing: .06em; color: var(--mute); margin-top: 4px; }
+    .rank .muted .score, .rank li.muted .score { color: var(--mute); }
+    @keyframes barX { from { transform: scaleX(0); } }
+    .editor-row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; padding: 14px 0; border-bottom: var(--b2); align-items: start; }
+    .editor-row .n { height: 56px; display: grid; place-content: center; font: 400 26px var(--display); background: var(--acc); color: var(--acc-fg); }
+    .editor-row .fields { display: grid; gap: 8px; }
+    .editor-row input, .editor-row textarea { width: 100%; padding: 10px 12px; border: var(--b2); font: 700 13px var(--mono); outline: 0; resize: vertical; }
+    .editor-row input:focus, .editor-row textarea:focus { box-shadow: 4px 4px 0 var(--acc); }
+    .icon-btn { width: 40px; height: 40px; border: var(--b2); background: var(--white); cursor: pointer; font: 800 16px var(--mono); }
+    .icon-btn:hover { background: var(--ink); color: var(--white); }
+    .qr-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px; }
+    .qr-card { border: var(--b); box-shadow: 6px 6px 0 var(--acc); break-inside: avoid; background: var(--white); }
+    .qr-card .qh { display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 14px; background: var(--acc); color: var(--acc-fg); border-bottom: var(--b); }
+    .qr-card .qh b { font: 400 72px/.8 var(--display); letter-spacing: -.07em; }
+    .qr-card .qr svg { width: 100%; height: auto; max-width: 210px; margin: 14px auto; }
+    .qr-card h3 { margin: 0; padding: 0 14px; font: 400 19px/1.05 var(--display); letter-spacing: -.02em; text-transform: uppercase; text-align: center; }
+    .qr-card .foot { padding: 8px 14px 14px; text-align: center; }
+    .stage { position: relative; overflow: hidden; isolation: isolate; border: var(--b); padding: 32px; min-height: 380px; }
+    .stage .stripes { top: auto; bottom: -50px; right: -50px; }
+    .raffle-name { font: 400 clamp(44px, 7vw, 84px)/.86 var(--display); letter-spacing: -.05em; text-transform: uppercase; min-height: 1.8em; margin: 22px 0 10px; }
+    .raffle-name.final { animation: plusUp .6s var(--snap) both; }
+    .winners { list-style: none; padding: 0; margin: 0; }
+    .winners li { display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: var(--b2); }
+    .cols { display: grid; gap: 28px; }
+    .live { position: fixed; inset: 0; z-index: 70; overflow: auto; background: var(--white); padding: 3vh 4vw; }
+    .live .phrase { font-size: clamp(3rem, 6.6vw, 7rem); flex-direction: row; flex-wrap: wrap; column-gap: .25em; margin: 2vh 0 3vh; }
+    .live .rank h3 { font-size: clamp(18px, 2vw, 32px); }
+    .live .rank .n { width: 76px; height: 76px; font-size: 42px; }
+    .live .rank li { grid-template-columns: 76px 1fr auto; }
+    .live-close { position: fixed; top: 14px; right: 14px; z-index: 71; width: auto; }
+    @media (min-width: 860px) {
+      .stats { grid-template-columns: repeat(4, 1fr); }
+      .stat { border-bottom: 0; }
+      .stat:last-child { border-right: 0; }
+      .cols { grid-template-columns: 1.4fr 1fr; align-items: start; }
+    }
+    @media print {
+      .topbar, .anav, .toolbar, .no-print { display: none !important; }
+      .admin { padding: 0; }
+      .qr-sheet { grid-template-columns: 1fr 1fr; gap: 10mm; }
+      .qr-card { box-shadow: none; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-mark" viewBox="0 0 64 76" fill="none" stroke-linecap="square">
+      <g stroke="currentColor" stroke-width="3.4">
+        <path d="M32 2v6M12 9l4 4.5M52 9l-4 4.5M3 27h6M61 27h-6M7 45l5-3M57 45l-5-3"/>
+        <path d="M23 51c-7-5-11-12-11-20a20 20 0 0 1 40 0c0 8-4 15-11 20v4H23z"/>
+        <path d="M24 60h16M26 65h12"/>
+        <path d="M32 65v3c0 4 5 5 7 2"/>
+      </g>
+      <path d="M32 51V33" stroke="#61A60E" stroke-width="3.4"/>
+      <path d="M32 40c-8 0-12-5-11-12 7 0 11 4 11 12z" fill="#61A60E"/>
+      <path d="M32 35c0-8 5-13 13-12 0 7-5 12-13 12z" fill="#B2CC36"/>
+    </symbol>
+  </svg>
+  <header class="topbar">
+    <a class="brand" href="/admin">
+      <svg class="brand-mark" aria-hidden="true"><use href="#i-mark"/></svg>
+      <span class="brand-name">Semilla Lab / Panel</span>
+    </a>
+    <img class="camposol-logo" src="/assets/camposol-green.png" alt="Camposol" width="95" height="16">
+  </header>
+  <main id="admin"></main>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="/admin/admin.js" type="module"></script>
+</body>
+</html>
