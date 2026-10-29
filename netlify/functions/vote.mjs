@@ -2,7 +2,7 @@ import { store, json, fail, readBody, authUser, getStands, getConfig, limited, T
 
 export default async (req) => {
   if (req.method !== "POST") return fail("Método no permitido", 405);
-  if (limited(req, "vote", 60)) return fail("Demasiados intentos, espera un momento", 429);
+  if (limited(req, "vote", 200)) return fail("Demasiados intentos, espera un momento", 429);
   const s = store();
   const user = await authUser(req, s);
   if (!user) return fail("Sesión inválida", 401);

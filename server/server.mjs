@@ -6,7 +6,7 @@
 import http from "node:http";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = path.join(ROOT, "public");
@@ -20,7 +20,7 @@ const FN_DIR = path.join(ROOT, "netlify", "functions");
 const routes = new Map();
 for (const f of await fs.readdir(FN_DIR)) {
   if (!f.endsWith(".mjs") || f.startsWith("_")) continue;
-  const mod = await import(path.join(FN_DIR, f));
+  const mod = await import(pathToFileURL(path.join(FN_DIR, f)).href);
   if (mod.config?.path) routes.set(mod.config.path, mod.default);
 }
 

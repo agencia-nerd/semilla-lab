@@ -2,7 +2,7 @@ import { store, json, fail, readBody, cleanName, cleanPhone, PHONE_RE, publicUse
 
 export default async (req) => {
   if (req.method !== "POST") return fail("Método no permitido", 405);
-  if (limited(req, "register", 30)) return fail("Demasiados intentos, espera un momento", 429);
+  if (limited(req, "register", 100)) return fail("Demasiados intentos, espera un momento", 429);
   const body = await readBody(req);
   const name = cleanName(body.name);
   const phone = cleanPhone(body.phone);
