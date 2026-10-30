@@ -1,0 +1,209 @@
+{
+  "base": "https://semilla-lab-loadtest.netlify.app",
+  "users": 300,
+  "durationS": 219,
+  "spike": {
+    "requests": 300,
+    "totalMs": 2104
+  },
+  "claims": {
+    "ok": 61,
+    "doubleTries": 15,
+    "doubleBlocked": 14
+  },
+  "expected": {
+    "registered": 300,
+    "votes": 4800
+  },
+  "server": {
+    "stats": {
+      "registered": 300,
+      "voters": 300,
+      "votes": 3686,
+      "eligible": 11
+    },
+    "prizeStats": [
+      {
+        "key": "canchita",
+        "unlocked": 300,
+        "claimed": 14
+      },
+      {
+        "key": "gaseosa",
+        "unlocked": 297,
+        "claimed": 17
+      },
+      {
+        "key": "helado",
+        "unlocked": 199,
+        "claimed": 17
+      },
+      {
+        "key": "pancho",
+        "unlocked": 11,
+        "claimed": 6
+      },
+      {
+        "key": "tombola",
+        "unlocked": 11,
+        "claimed": 7
+      }
+    ]
+  },
+  "endpoints": [
+    {
+      "endpoint": "GET stands",
+      "n": 301,
+      "ok": 298,
+      "err": 3,
+      "p50": 257,
+      "p95": 468,
+      "p99": 742,
+      "max": 993,
+      "codes": "200:298 403:3"
+    },
+    {
+      "endpoint": "GET / (página)",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 93,
+      "p95": 366,
+      "p99": 448,
+      "max": 732,
+      "codes": "200:300"
+    },
+    {
+      "endpoint": "GET admin summary (proyección)",
+      "n": 7,
+      "ok": 6,
+      "err": 1,
+      "p50": 327,
+      "p95": 1545,
+      "p99": 1545,
+      "max": 1545,
+      "codes": "200:6 403:1"
+    },
+    {
+      "endpoint": "GET /app.js",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 180,
+      "p95": 354,
+      "p99": 500,
+      "max": 614,
+      "codes": "200:300"
+    },
+    {
+      "endpoint": "POST register",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 287,
+      "p95": 592,
+      "p99": 1036,
+      "max": 1295,
+      "codes": "201:300"
+    },
+    {
+      "endpoint": "GET me",
+      "n": 1780,
+      "ok": 1348,
+      "err": 432,
+      "p50": 324,
+      "p95": 683,
+      "p99": 998,
+      "max": 1421,
+      "codes": "200:1348 403:432"
+    },
+    {
+      "endpoint": "GET admin summary (panel)",
+      "n": 11,
+      "ok": 9,
+      "err": 2,
+      "p50": 1536,
+      "p95": 4641,
+      "p99": 4641,
+      "max": 4641,
+      "codes": "200:9 403:2"
+    },
+    {
+      "endpoint": "POST vote",
+      "n": 4800,
+      "ok": 3624,
+      "err": 1176,
+      "p50": 508,
+      "p95": 840,
+      "p99": 1087,
+      "max": 5896,
+      "codes": "200:3624 403:1176"
+    },
+    {
+      "endpoint": "GET staff pendientes",
+      "n": 40,
+      "ok": 35,
+      "err": 5,
+      "p50": 301,
+      "p95": 4494,
+      "p99": 4857,
+      "max": 4857,
+      "codes": "200:35 403:5"
+    },
+    {
+      "endpoint": "GET me (vale abierto)",
+      "n": 1485,
+      "ok": 1114,
+      "err": 371,
+      "p50": 348,
+      "p95": 680,
+      "p99": 919,
+      "max": 1215,
+      "codes": "200:1114 403:371"
+    },
+    {
+      "endpoint": "GET staff buscar",
+      "n": 77,
+      "ok": 66,
+      "err": 11,
+      "p50": 348,
+      "p95": 4364,
+      "p99": 4903,
+      "max": 4903,
+      "codes": "200:66 403:11"
+    },
+    {
+      "endpoint": "POST staff canje",
+      "n": 77,
+      "ok": 65,
+      "err": 12,
+      "p50": 463,
+      "p95": 868,
+      "p99": 1208,
+      "max": 1208,
+      "codes": "200:61 403:12 409:4"
+    },
+    {
+      "endpoint": "POST staff doble canje (debe 409)",
+      "n": 15,
+      "ok": 14,
+      "err": 1,
+      "p50": 352,
+      "p95": 985,
+      "p99": 985,
+      "max": 985,
+      "codes": "403:1 409:14"
+    },
+    {
+      "endpoint": "POST vote (pico simultáneo)",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 1751,
+      "p95": 1969,
+      "p99": 2072,
+      "max": 2080,
+      "codes": "200:300"
+    }
+  ]
+}

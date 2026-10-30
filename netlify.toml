@@ -11,7 +11,29 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
+# Menos solicitudes por persona: el celular no vuelve a pedir imágenes/fuentes en cada carga.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, immutable"
+
+# JS/CSS siempre se revalidan (respuesta 304 si no cambiaron): evita mezclar versiones tras publicar.
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[redirects]]
   from = "/admin"
   to = "/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/staff"
+  to = "/staff/index.html"
   status = 200

@@ -1,15 +1,15 @@
-import { store, json, fail, readBody, authUser, getStands, getConfig, limited, TAG_KEYS } from "./_lib.mjs";
+import { store, json, fail, readBody, authUser, getStands, getConfig, limited, TAG_KEYS, voteCount, prizeStatus } from "./_lib.mjs";
 
 export default async (req) => {
   if (req.method !== "POST") return fail("Método no permitido", 405);
-  if (limited(req, "vote", 200)) return fail("Demasiados intentos, espera un momento", 429);
   const s = store();
   const user = await authUser(req, s);
   if (!user) return fail("Sesión inválida", 401);
+  if (limited(req, "vote", 40, 60_000, user.phone)) return fail("Demasiados intentos, espera un momento", 429);
   const [config, stands] = await Promise.all([getConfig(s), getStands(s)]);
   if (!config.votingOpen) return fail("La votación está cerrada", 403);
 
-  const { standId, stars, tags } = await readBody(req);
+  const { standId, stars, tags, comment } = await readBody(req);
   const n = Number(stars);
   if (!stands.some((x) => x.id === standId)) return fail("Stand no encontrado", 404);
   if (!Number.isInteger(n) || n < 1 || n > 5) return fail("Elige de 1 a 5 estrellas");
@@ -17,9 +17,12 @@ export default async (req) => {
   const key = `votes/${user.phone}`;
   const votes = (await s.get(key, { type: "json" })) || {};
   const cleanTags = Array.isArray(tags) ? [...new Set(tags.filter((t) => TAG_KEYS.includes(t)))].slice(0, 2) : [];
-  votes[standId] = { stars: n, tags: cleanTags, at: new Date().toISOString() };
+  const cleanComment = String(comment || "").replace(/\s+/g, " ").trim().slice(0, 280);
+  votes[standId] = { stars: n, tags: cleanTags, ...(cleanComment && { comment: cleanComment }), at: new Date().toISOString() };
   await s.setJSON(key, votes);
-  return json({ votes, count: Object.keys(votes).length, minForRaffle: config.minForRaffle });
+  const count = voteCount(votes, stands);
+  const claims = (await s.get(`claims/${user.phone}`, { type: "json" })) || {};
+  return json({ votes, count, minForRaffle: config.minForRaffle, prizes: prizeStatus(count, claims, config) });
 };
 
 export const config = { path: "/api/vote" };

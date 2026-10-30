@@ -1,0 +1,209 @@
+{
+  "base": "http://localhost:8093",
+  "users": 300,
+  "durationS": 199,
+  "spike": {
+    "requests": 300,
+    "totalMs": 92
+  },
+  "claims": {
+    "ok": 119,
+    "doubleTries": 14,
+    "doubleBlocked": 14
+  },
+  "expected": {
+    "registered": 300,
+    "votes": 4800
+  },
+  "server": {
+    "stats": {
+      "registered": 300,
+      "voters": 300,
+      "votes": 4800,
+      "eligible": 300
+    },
+    "prizeStats": [
+      {
+        "key": "canchita",
+        "unlocked": 300,
+        "claimed": 32
+      },
+      {
+        "key": "gaseosa",
+        "unlocked": 300,
+        "claimed": 27
+      },
+      {
+        "key": "helado",
+        "unlocked": 300,
+        "claimed": 22
+      },
+      {
+        "key": "pancho",
+        "unlocked": 300,
+        "claimed": 20
+      },
+      {
+        "key": "tombola",
+        "unlocked": 300,
+        "claimed": 18
+      }
+    ]
+  },
+  "endpoints": [
+    {
+      "endpoint": "GET stands",
+      "n": 301,
+      "ok": 301,
+      "err": 0,
+      "p50": 1,
+      "p95": 2,
+      "p99": 3,
+      "max": 75,
+      "codes": "200:301"
+    },
+    {
+      "endpoint": "GET admin summary (proyección)",
+      "n": 6,
+      "ok": 6,
+      "err": 0,
+      "p50": 2,
+      "p95": 7,
+      "p99": 7,
+      "max": 7,
+      "codes": "200:6"
+    },
+    {
+      "endpoint": "GET / (página)",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 1,
+      "p95": 3,
+      "p99": 6,
+      "max": 11,
+      "codes": "200:300"
+    },
+    {
+      "endpoint": "GET /app.js",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 1,
+      "p95": 2,
+      "p99": 6,
+      "max": 19,
+      "codes": "200:300"
+    },
+    {
+      "endpoint": "POST register",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 2,
+      "p95": 5,
+      "p99": 8,
+      "max": 10,
+      "codes": "201:300"
+    },
+    {
+      "endpoint": "GET me",
+      "n": 1739,
+      "ok": 1739,
+      "err": 0,
+      "p50": 1,
+      "p95": 2,
+      "p99": 4,
+      "max": 11,
+      "codes": "200:1739"
+    },
+    {
+      "endpoint": "POST vote",
+      "n": 4800,
+      "ok": 4800,
+      "err": 0,
+      "p50": 3,
+      "p95": 6,
+      "p99": 8,
+      "max": 44,
+      "codes": "200:4800"
+    },
+    {
+      "endpoint": "GET admin summary (panel)",
+      "n": 12,
+      "ok": 12,
+      "err": 0,
+      "p50": 23,
+      "p95": 37,
+      "p99": 37,
+      "max": 37,
+      "codes": "200:12"
+    },
+    {
+      "endpoint": "GET staff pendientes",
+      "n": 39,
+      "ok": 39,
+      "err": 0,
+      "p50": 4,
+      "p95": 35,
+      "p99": 38,
+      "max": 38,
+      "codes": "200:39"
+    },
+    {
+      "endpoint": "GET me (vale abierto)",
+      "n": 1500,
+      "ok": 1500,
+      "err": 0,
+      "p50": 2,
+      "p95": 4,
+      "p99": 7,
+      "max": 38,
+      "codes": "200:1500"
+    },
+    {
+      "endpoint": "GET staff buscar",
+      "n": 119,
+      "ok": 119,
+      "err": 0,
+      "p50": 4,
+      "p95": 24,
+      "p99": 35,
+      "max": 42,
+      "codes": "200:119"
+    },
+    {
+      "endpoint": "POST staff canje",
+      "n": 119,
+      "ok": 119,
+      "err": 0,
+      "p50": 5,
+      "p95": 9,
+      "p99": 12,
+      "max": 28,
+      "codes": "200:119"
+    },
+    {
+      "endpoint": "POST staff doble canje (debe 409)",
+      "n": 14,
+      "ok": 14,
+      "err": 0,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2,
+      "codes": "409:14"
+    },
+    {
+      "endpoint": "POST vote (pico simultáneo)",
+      "n": 300,
+      "ok": 300,
+      "err": 0,
+      "p50": 54,
+      "p95": 71,
+      "p99": 73,
+      "max": 73,
+      "codes": "200:300"
+    }
+  ]
+}

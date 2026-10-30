@@ -4,18 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#027d78">
   <title>Panel · Semilla Lab</title>
-  <link rel="icon" href="/assets/semilla-mark.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/assets/favicon-48.png" type="image/png">
+  <link rel="preload" href="/assets/fonts/Poppins-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/fonts/fonts.css">
   <link rel="stylesheet" href="/styles.css">
   <style>
     .admin { padding-top: 24px; padding-bottom: 64px; }
     .anav { display: flex; overflow-x: auto; border: var(--b); margin-bottom: 24px; scrollbar-width: none; }
     .anav button { flex: none; border: 0; border-right: var(--b2); background: var(--white); padding: 14px 22px; cursor: pointer; font: 700 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
     .anav button[aria-selected="true"] { background: var(--ink); color: var(--white); }
+    .anav-link { flex: none; margin-left: auto; display: flex; align-items: center; padding: 0 18px; background: var(--cs-green); color: var(--white); text-decoration: none; font: 700 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .pz-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+    .pz-stat { position: relative; border: var(--b); box-shadow: var(--shadow-sm); padding: 10px 12px; min-height: 96px; }
+    .pz-stat img { position: absolute; right: 8px; top: 8px; width: 56px; height: 56px; object-fit: contain; }
+    .pz-stat b { display: block; font: 400 40px/1 var(--display); letter-spacing: -.05em; }
+    .pz-stat b em { font-style: normal; color: #bdbdbd; font-size: .6em; }
+    .pz-stat .tag { display: block; margin-top: 4px; }
     .stats { display: grid; grid-template-columns: repeat(2, 1fr); border: var(--b); }
     .stat { padding: 14px 18px; border-right: var(--b2); border-bottom: var(--b2); }
     .stat b { display: block; font: 400 clamp(44px, 7vw, 68px)/.9 var(--display); letter-spacing: -.05em; margin-top: 8px; }
@@ -39,16 +45,26 @@
     .editor-row .n { height: 56px; display: grid; place-content: center; font: 400 26px var(--display); background: var(--acc); color: var(--acc-fg); }
     .editor-row .fields { display: grid; gap: 8px; }
     .editor-row input, .editor-row textarea { width: 100%; padding: 10px 12px; border: var(--b2); font: 700 13px var(--mono); outline: 0; resize: vertical; }
-    .editor-row input:focus, .editor-row textarea:focus { box-shadow: 4px 4px 0 var(--acc); }
+    .editor-row input:focus, .editor-row textarea:focus { box-shadow: var(--shadow-sm); }
     .icon-btn { width: 40px; height: 40px; border: var(--b2); background: var(--white); cursor: pointer; font: 800 16px var(--mono); }
     .icon-btn:hover { background: var(--ink); color: var(--white); }
     .qr-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px; }
-    .qr-card { border: var(--b); box-shadow: 6px 6px 0 var(--acc); break-inside: avoid; background: var(--white); }
+    .qr-card { border: var(--b); box-shadow: var(--shadow-sm); break-inside: avoid; background: var(--white); }
     .qr-card .qh { display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 14px; background: var(--acc); color: var(--acc-fg); border-bottom: var(--b); }
     .qr-card .qh b { font: 400 72px/.8 var(--display); letter-spacing: -.07em; }
     .qr-card .qr svg { width: 100%; height: auto; max-width: 210px; margin: 14px auto; }
     .qr-card h3 { margin: 0; padding: 0 14px; font: 400 19px/1.05 var(--display); letter-spacing: -.02em; text-transform: uppercase; text-align: center; }
     .qr-card .foot { padding: 8px 14px 14px; text-align: center; }
+    .cmts { margin-top: 8px; }
+    .cmts summary { cursor: pointer; color: var(--teal, #027D78); }
+    .cmts ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+    .cmts li b { font-weight: 700; margin-right: 4px; }
+    .qr-web { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; padding: 18px; margin-bottom: 22px; background: var(--white); border-radius: 22px; box-shadow: var(--shadow-sm); break-inside: avoid; }
+    .qr-web .qr svg { width: 220px; max-width: 100%; height: auto; display: block; }
+    .qr-web-txt { flex: 1; min-width: 220px; display: grid; gap: 6px; justify-items: start; }
+    .qr-web-txt h3 { margin: 0; font: 700 26px/1.05 var(--display); }
+    .qr-web-txt .url { font: 600 16px var(--display); color: var(--teal, #027D78); word-break: break-all; }
+    .qr-web-txt p { margin: 0 0 6px; font-size: 14px; }
     .stage { position: relative; overflow: hidden; isolation: isolate; border: var(--b); padding: 32px; min-height: 380px; }
     .stage .stripes { top: auto; bottom: -50px; right: -50px; }
     .raffle-name { font: 400 clamp(44px, 7vw, 84px)/.86 var(--display); letter-spacing: -.05em; text-transform: uppercase; min-height: 1.8em; margin: 22px 0 10px; }
@@ -64,6 +80,7 @@
     .live-close { position: fixed; top: 14px; right: 14px; z-index: 71; width: auto; }
     @media (min-width: 860px) {
       .stats { grid-template-columns: repeat(4, 1fr); }
+      .pz-stats { grid-template-columns: repeat(4, 1fr); }
       .stat { border-bottom: 0; }
       .stat:last-child { border-right: 0; }
       .cols { grid-template-columns: 1.4fr 1fr; align-items: start; }
@@ -74,6 +91,40 @@
       .qr-sheet { grid-template-columns: 1fr 1fr; gap: 10mm; }
       .qr-card { box-shadow: none; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
+
+    /* ---- Línea gráfica Semilla Lab 2026 ---- */
+    .anav { border: 0; background: var(--white); border-radius: 999px; padding: 4px; gap: 4px; box-shadow: var(--shadow-sm); }
+    .anav button { border: 0; border-radius: 999px; font: 600 13px var(--display); letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+    .anav button[aria-selected="true"] { background: var(--teal); color: var(--white); }
+    .anav-link { border-radius: 999px; font: 700 13px var(--display); letter-spacing: 0; text-transform: none; background: var(--green); }
+    .stats { border: 0; border-radius: var(--r-lg); overflow: hidden; background: var(--white); box-shadow: var(--shadow-sm); }
+    .stat { border-color: var(--line); }
+    .stat b { font-weight: 800; color: var(--teal); letter-spacing: -.03em; }
+    .stat.sun { background: var(--cs-lime); }
+    .sec { border-bottom: 2px solid var(--line); color: var(--teal); font-weight: 700; }
+    .rank li { border-bottom: 1px solid var(--line); }
+    .rank .n { border-radius: 16px; font-weight: 800; }
+    .rank h3 { font-weight: 700; text-transform: none; letter-spacing: -.01em; }
+    .rank .bar { border: 0; background: var(--tint); border-radius: 999px; overflow: hidden; }
+    .rank .tags span { border: 1px solid var(--line); border-radius: 999px; text-transform: none; font-family: var(--display); font-weight: 600; }
+    .rank .score { color: var(--teal); font-family: var(--display); }
+    .editor-row { border-bottom: 1px solid var(--line); }
+    .editor-row .n { border-radius: 14px; font-weight: 800; }
+    .editor-row input, .editor-row textarea { border-radius: 12px; border: 2px solid var(--line); font: 500 14px var(--display); }
+    .icon-btn { border-radius: 12px; border: 2px solid var(--line); }
+    .qr-card { border: 0; border-radius: var(--r-lg); overflow: hidden; }
+    .qr-card .qh { border-bottom: 0; }
+    .qr-card .qh b { font-weight: 800; }
+    .qr-card h3 { text-transform: none; font-weight: 700; }
+    .stage { border: 0; border-radius: var(--r-lg); background: var(--teal); color: var(--white); }
+    .stage .tag { color: var(--cream); }
+    .raffle-name { text-transform: none; font-weight: 800; color: var(--cream); letter-spacing: -.02em; }
+    .winners li { border-bottom: 1px solid var(--line); }
+    .pz-stat { border: 0; border-bottom: 5px solid var(--acc); border-radius: var(--r-md); background: var(--white); }
+    .live { background: var(--cream-soft); }
+    .live .phrase { color: var(--teal); }
+    .live .phrase .out, .live .phrase .out + span { color: var(--green); }
+    @media print { .qr-card { border: 1px solid #cfdcd8; } }
   </style>
 </head>
 <body>
@@ -92,10 +143,10 @@
   </svg>
   <header class="topbar">
     <a class="brand" href="/admin">
-      <svg class="brand-mark" aria-hidden="true"><use href="#i-mark"/></svg>
-      <span class="brand-name">Semilla Lab / Panel</span>
+      <img class="brand-badge" src="/assets/semilla-bulb.webp" alt="" width="40" height="40">
+      <span class="brand-name">Semilla Lab<small>Panel · 2026</small></span>
     </a>
-    <img class="camposol-logo" src="/assets/camposol-green.png" alt="Camposol" width="95" height="16">
+    <img class="camposol-logo" src="/assets/camposol-white.webp" alt="Camposol" width="154" height="26">
   </header>
   <main id="admin"></main>
   <div class="toast" id="toast" role="status"></div>

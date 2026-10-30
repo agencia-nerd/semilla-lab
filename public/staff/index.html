@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#027d78">
+  <title>Canje · Semilla Lab</title>
+  <link rel="icon" href="/assets/favicon-48.png" type="image/png">
+  <link rel="preload" href="/assets/fonts/Poppins-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/fonts/fonts.css">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .staff { padding-top: 16px; padding-bottom: 80px; max-width: 760px; }
+    .booth { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 6px 8px 0; }
+    .booth button { flex: none; display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border: var(--b2); background: var(--white); cursor: pointer; font: 700 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .booth button img { width: 24px; height: 24px; object-fit: contain; }
+    .booth button[aria-pressed="true"] { background: var(--acc, var(--ink)); color: var(--acc-fg, #fff); box-shadow: var(--shadow-sm); }
+    .search { position: sticky; top: 58px; z-index: 10; background: var(--white); padding: 10px 0; }
+    .search .input { height: 60px; }
+    .search input { font-size: 18px; }
+    .meta { display: flex; justify-content: space-between; margin: 6px 0 10px; color: var(--mute); }
+    .people { display: grid; gap: 12px; }
+    .person { border: var(--b); padding: 12px 12px 12px; animation: rise .35s var(--ease) both; }
+    .person h3 { margin: 0; font: 400 24px/1 var(--display); letter-spacing: -.03em; text-transform: uppercase; }
+    .person .sub { margin-top: 6px; color: var(--mute); }
+    .pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+    .pill { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 92px; padding: 6px 2px; border: var(--b2); background: var(--white); cursor: pointer; font: 700 9.5px/1.1 var(--mono); letter-spacing: .04em; text-transform: uppercase; text-align: center; -webkit-tap-highlight-color: transparent; }
+    .pill img { width: 40px; height: 40px; object-fit: contain; }
+    .pill.locked { border-style: dashed; border-color: #cfcfcb; color: #a0a0a0; cursor: default; }
+    .pill.locked img { filter: grayscale(1); opacity: .3; }
+    .pill.ready { background: var(--acc); color: var(--acc-fg); box-shadow: var(--shadow-sm); }
+    .pill.ready:active { transform: translate(3px,3px); box-shadow: none; }
+    .pill.claimed { background: var(--ink); color: var(--white); }
+    .pill.claimed img { opacity: .5; filter: grayscale(1); }
+    .pill.focus { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .primary { margin-top: 12px; }
+    .primary .btn { min-height: 58px; font-size: 18px; }
+    .primary .done-msg { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--ink); color: var(--white); font: 400 18px var(--display); text-transform: uppercase; }
+    .primary .lock-msg { padding: 12px 14px; border: 2px dashed #bdbdbd; color: var(--mute); }
+    .modal { position: fixed; inset: 0; z-index: 85; background: rgba(15,15,15,.55); display: flex; align-items: flex-end; justify-content: center; padding: 16px; animation: fade .15s both; }
+    .sheet { width: 100%; max-width: 520px; background: var(--white); border: var(--b); box-shadow: var(--shadow-sm); padding: 18px; animation: rise .3s var(--ease) both; }
+    .sheet img { width: 120px; height: 120px; object-fit: contain; float: right; margin: -6px -6px 0 8px; }
+    .sheet h2 { margin: 8px 0 6px; font: 400 34px/.9 var(--display); letter-spacing: -.04em; text-transform: uppercase; }
+    .sheet p { margin: 0 0 16px; }
+    .sheet .actions { display: grid; gap: 10px; clear: both; }
+    .sheet.warn { box-shadow: var(--shadow-sm); border-color: var(--error); }
+    .sheet.warn h2 { color: var(--error); }
+    .sheet.ok h2 { color: var(--cs-green); }
+    .empty-s { padding: 30px 0; color: var(--mute); }
+
+    /* ---- Línea gráfica Semilla Lab 2026 ---- */
+    .booth button { border: 2px solid var(--line); border-radius: 999px; font: 600 13px var(--display); letter-spacing: 0; text-transform: none; }
+    .booth button[aria-pressed="true"] { background: var(--acc, var(--teal)); color: var(--acc-fg, #fff); border-color: transparent; }
+    .person { border: 0; border-radius: var(--r-lg); background: var(--white); box-shadow: var(--shadow-sm); }
+    .person h3 { text-transform: none; font-weight: 800; color: var(--teal); letter-spacing: -.02em; }
+    .pill { border-radius: 14px; border: 2px solid var(--line); text-transform: none; font-family: var(--display); font-weight: 600; letter-spacing: 0; }
+    .pill.locked { border-style: dashed; }
+    .pill.ready { border-color: transparent; }
+    .pill.claimed { background: var(--teal); border-color: transparent; }
+    .pill.focus { outline: 3px solid var(--orange); }
+    .primary .done-msg { border-radius: var(--r-md); background: var(--teal); text-transform: none; font-weight: 700; }
+    .primary .lock-msg { border-radius: var(--r-md); }
+    .modal { background: rgba(2, 60, 57, .5); }
+    .sheet { border: 0; border-radius: var(--r-lg); }
+    .sheet h2 { text-transform: none; font-weight: 800; letter-spacing: -.02em; }
+    .search { background: var(--cream-soft); }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-mark" viewBox="0 0 64 76" fill="none" stroke-linecap="square">
+      <g stroke="currentColor" stroke-width="3.4">
+        <path d="M32 2v6M12 9l4 4.5M52 9l-4 4.5M3 27h6M61 27h-6M7 45l5-3M57 45l-5-3"/>
+        <path d="M23 51c-7-5-11-12-11-20a20 20 0 0 1 40 0c0 8-4 15-11 20v4H23z"/>
+        <path d="M24 60h16M26 65h12"/>
+        <path d="M32 65v3c0 4 5 5 7 2"/>
+      </g>
+      <path d="M32 51V33" stroke="#61A60E" stroke-width="3.4"/>
+      <path d="M32 40c-8 0-12-5-11-12 7 0 11 4 11 12z" fill="#61A60E"/>
+      <path d="M32 35c0-8 5-13 13-12 0 7-5 12-13 12z" fill="#B2CC36"/>
+    </symbol>
+  </svg>
+  <header class="topbar">
+    <a class="brand" href="/staff">
+      <img class="brand-badge" src="/assets/semilla-bulb.webp" alt="" width="40" height="40">
+      <span class="brand-name">Semilla Lab<small>Canje · 2026</small></span>
+    </a>
+    <div id="topRight"></div>
+  </header>
+  <main id="staff"></main>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="/staff/staff.js" type="module"></script>
+</body>
+</html>

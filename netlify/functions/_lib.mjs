@@ -10,23 +10,49 @@ export const store = () =>
 
 export const PHONE_RE = /^9\d{8}$/;
 
+// Los 10 finalistas de Semilla Lab 2026 (`team` = categoría).
 export const DEFAULT_STANDS = [
-  { id: "s01", name: "Riego que escucha", team: "Operaciones Agrícolas", pitch: "Sensores de humedad que ajustan el riego por turno y reducen consumo de agua." },
-  { id: "s02", name: "Cosecha sin papel", team: "Campo · Arándano", pitch: "Registro de jabas desde el celular, sin planillas ni doble digitación." },
-  { id: "s03", name: "Ruta corta a planta", team: "Logística", pitch: "Rutas de transporte reordenadas para bajar tiempos de campo a empaque." },
-  { id: "s04", name: "Frío inteligente", team: "Cadena de Frío", pitch: "Alertas tempranas de temperatura en cámaras para cuidar la fruta." },
-  { id: "s05", name: "Empaque en flujo", team: "Planta de Empaque", pitch: "Rediseño de la línea para eliminar cuellos de botella en clamshells." },
-  { id: "s06", name: "Mantenimiento a tiempo", team: "Mantenimiento", pitch: "Plan predictivo de tractores basado en horas de uso reales." },
-  { id: "s07", name: "Menos merma, más fruta", team: "Calidad", pitch: "Clasificación visual que detecta defectos antes del empaque." },
-  { id: "s08", name: "Inducción en 1 día", team: "Gestión Humana", pitch: "Onboarding guiado con videos cortos para nuevos colaboradores." },
-  { id: "s09", name: "Energía que rinde", team: "Sostenibilidad", pitch: "Medición de consumo eléctrico por área para atacar el desperdicio." },
-  { id: "s10", name: "Compra en un clic", team: "Abastecimiento", pitch: "Solicitudes de insumos aprobadas en el día, con trazabilidad." },
+  { id: "s01", name: "Coti AI", team: "Cat. 1 · Crecimiento comercial y experiencia del cliente", pitch: "Cotizaciones a clientes en minutos con inteligencia artificial." },
+  { id: "s02", name: "Inventory Value Optimization", team: "Cat. 1 · Crecimiento comercial y experiencia del cliente", pitch: "Inventario optimizado para liberar capital y no perder ventas." },
+  { id: "s03", name: "Handpack Evolution", team: "Cat. 2A · Eficiencia y sostenibilidad", pitch: "Empaque manual rediseñado para ganar velocidad y reducir desperdicio." },
+  { id: "s04", name: "Geocampos IA", team: "Cat. 2A · Eficiencia y sostenibilidad", pitch: "Mapas del fundo con IA para decidir riego, nutrición y cosecha por lote." },
+  { id: "s05", name: "Hydratech", team: "Cat. 2A · Eficiencia y sostenibilidad", pitch: "Tecnología para usar cada gota de agua de riego con precisión." },
+  { id: "s06", name: "Mr. Pack", team: "Cat. 2B · Eficiencia y sostenibilidad", pitch: "Empaque más eficiente y sostenible, con menos material y menos costo." },
+  { id: "s07", name: "Smarck Track Lot", team: "Cat. 2B · Eficiencia y sostenibilidad", pitch: "Trazabilidad de cada lote en tiempo real, del campo al cliente." },
+  { id: "s08", name: "Protime", team: "Cat. 2B · Eficiencia y sostenibilidad", pitch: "Control de tiempos de operación para producir más en menos horas." },
+  { id: "s09", name: "Eureka", team: "Cat. 3 · Excelencia productiva y calidad", pitch: "Una mejora de proceso que eleva la productividad y la calidad del producto." },
+  { id: "s10", name: "Avocado Rewash", team: "Cat. 3 · Excelencia productiva y calidad", pitch: "Relavado de palta que recupera fruta y asegura calidad e inocuidad." },
 ];
+
+// Premios: uno por nivel, se acumulan, cada uno se canjea una sola vez. El último nivel es 10 (todos los stands, hot dog).
+export const PRIZES = [
+  { key: "canchita", name: "Canchita", at: 3 },
+  { key: "gaseosa", name: "Gaseosa", at: 5 },
+  { key: "helado", name: "Helado", at: 8 },
+  { key: "pancho", name: "Hot Dog", at: 10 },
+];
+
+// Lista de premios vigente (se deja como función por si en el futuro dependen de la configuración).
+export const prizesFor = () => PRIZES;
+
+// Votos válidos (de stands que existen).
+export const voteCount = (votes, stands) => stands.filter((s) => votes?.[s.id]).length;
+
+// Estado de premios de una persona: bloqueado / listo / canjeado.
+export function prizeStatus(count, claims = {}, config) {
+  return prizesFor(config).map((p) => ({
+    ...p,
+    unlocked: count >= p.at,
+    claimed: !!claims[p.key],
+    claimedAt: claims[p.key]?.at || null,
+    missing: Math.max(0, p.at - count),
+  }));
+}
 
 // Pregunta opcional "lo más fuerte" (debe coincidir con public/palette.js).
 export const TAG_KEYS = ["impacto", "tiempo", "facil", "original", "personas", "sostenible"];
 
-export const DEFAULT_CONFIG = { votingOpen: true, minForRaffle: 5 };
+export const DEFAULT_CONFIG = { votingOpen: true, minForRaffle: 10 };
 
 export const json = (data, status = 200, extra = {}) =>
   new Response(JSON.stringify(data), {
@@ -63,10 +89,12 @@ export async function authUser(req, s = store()) {
 export const publicUser = (u) => ({ name: u.name, phone: u.phone, token: u.token });
 
 // Rate limit simple en memoria por instancia (suficiente para un evento interno).
+// Ojo: en el evento cientos de personas comparten el WiFi y salen con la MISMA IP,
+// por eso los límites por IP son altos y el de votos se aplica por persona (id).
 const hits = new Map();
-export function limited(req, key, max = 20, windowMs = 60_000) {
+export function limited(req, key, max = 20, windowMs = 60_000, id = null) {
   const ip = req.headers.get("x-nf-client-connection-ip") || req.headers.get("x-forwarded-for") || "local";
-  const k = `${key}:${ip}`;
+  const k = `${key}:${id || ip}`;
   const now = Date.now();
   const arr = (hits.get(k) || []).filter((t) => now - t < windowMs);
   arr.push(now);
@@ -75,3 +103,45 @@ export function limited(req, key, max = 20, windowMs = 60_000) {
 }
 
 export const maskPhone = (p) => `${p.slice(0, 1)}** *** ${p.slice(-3)}`;
+
+// Lee todos los documentos de un prefijo (en lotes de 50 en paralelo).
+export async function loadAll(s, prefix) {
+  const { blobs } = await s.list({ prefix });
+  const out = [];
+  for (let i = 0; i < blobs.length; i += 50) {
+    const chunk = await Promise.all(blobs.slice(i, i + 50).map((b) => s.get(b.key, { type: "json" })));
+    chunk.forEach((v, j) => v && out.push({ key: blobs[i + j].key.slice(prefix.length), value: v }));
+  }
+  return out;
+}
+
+// Caché compartida para lecturas pesadas (resumen del panel, lista del staff).
+// Capa 1: memoria de la instancia (3 s). Capa 2: un documento en el store, compartido
+// entre todas las instancias (ttl). Así 10 pantallas consultando cada pocos segundos
+// cuestan ~1 lectura cada una, y el recálculo completo ocurre como mucho 1 vez por ttl.
+const mem = new Map();
+export async function cached(s, key, ttl, build) {
+  const now = Date.now();
+  const m = mem.get(key);
+  if (m && now - m.at < Math.min(3000, ttl)) return m.data;
+  const doc = await s.get(`cache/${key}`, { type: "json" }).catch(() => null);
+  if (doc && now - doc.at < ttl) { mem.set(key, doc); return doc.data; }
+  const data = await build();
+  const fresh = { at: Date.now(), data };
+  mem.set(key, fresh);
+  await s.setJSON(`cache/${key}`, fresh);
+  return data;
+}
+export async function invalidate(s, ...keys) {
+  for (const k of keys) mem.delete(k);
+  await Promise.all(keys.map((k) => s.delete(`cache/${k}`)));
+}
+
+// Ajusta un documento cacheado sin recalcularlo (p. ej. tras un canje). Si no hay caché, no hace nada.
+export async function patchCached(s, key, fn) {
+  const doc = await s.get(`cache/${key}`, { type: "json" }).catch(() => null);
+  if (!doc) return;
+  doc.data = fn(doc.data);
+  mem.set(key, doc);
+  await s.setJSON(`cache/${key}`, doc);
+}

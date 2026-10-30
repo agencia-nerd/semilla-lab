@@ -14,6 +14,7 @@ const PORT = Number(process.env.PORT || 8080);
 process.env.STORAGE_DIR ||= path.join(ROOT, "data");
 
 if (!process.env.ADMIN_PIN) console.warn("⚠  ADMIN_PIN no está definido: el panel /admin no funcionará.");
+if (!process.env.STAFF_PIN) console.warn("⚠  STAFF_PIN no está definido: en /staff solo entrará el admin.");
 
 // Carga las funciones y usa su config.path como ruta.
 const FN_DIR = path.join(ROOT, "netlify", "functions");
@@ -26,13 +27,13 @@ for (const f of await fs.readdir(FN_DIR)) {
 
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
-  ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".json": "application/json", ".ico": "image/x-icon",
+  ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2", ".json": "application/json", ".ico": "image/x-icon",
 };
 const SEC_HEADERS = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin" };
 
 async function serveStatic(urlPath, res) {
   let rel = decodeURIComponent(urlPath);
-  if (rel === "/admin") rel = "/admin/index.html";
+  if (rel === "/admin" || rel === "/staff") rel = `${rel}/index.html`;
   if (rel.endsWith("/")) rel += "index.html";
   const file = path.normalize(path.join(PUBLIC, rel));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403).end(); return; }
@@ -40,7 +41,8 @@ async function serveStatic(urlPath, res) {
     const data = await fs.readFile(file);
     res.writeHead(200, {
       "content-type": TYPES[path.extname(file)] || "application/octet-stream",
-      "cache-control": "public, max-age=0, must-revalidate",
+      "cache-control": rel.startsWith("/assets/") ? "public, max-age=604800, immutable"
+        : "public, max-age=0, must-revalidate",
       ...SEC_HEADERS,
     });
     res.end(data);

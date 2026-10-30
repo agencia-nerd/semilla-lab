@@ -1,43 +1,48 @@
-import { store, json, fail, readBody, getStands, getConfig, cleanName, maskPhone } from "./_lib.mjs";
+import { store, json, fail, readBody, getStands, getConfig, cleanName, maskPhone, prizeStatus, prizesFor, loadAll, cached, invalidate, PRIZES } from "./_lib.mjs";
+
+// Meta: votar los stands necesarios para el último premio (10 → hot dog).
+const GOAL = Math.max(...PRIZES.map((p) => p.at));
 
 // En local (netlify dev) el PIN por defecto es "semilla2026"; en producción ADMIN_PIN es obligatorio.
 const PIN = () => process.env.ADMIN_PIN || (process.env.NETLIFY_DEV ? "semilla2026" : null);
 const MIN_VOTES_TO_RANK = 3;
 
-async function loadAll(s, prefix) {
-  const { blobs } = await s.list({ prefix });
-  const out = [];
-  for (let i = 0; i < blobs.length; i += 50) {
-    const chunk = await Promise.all(blobs.slice(i, i + 50).map((b) => s.get(b.key, { type: "json" })));
-    chunk.forEach((v, j) => v && out.push({ key: blobs[i + j].key.slice(prefix.length), value: v }));
-  }
-  return out;
-}
-
 async function snapshot(s) {
-  const [stands, config, users, votes, raffle] = await Promise.all([
-    getStands(s), getConfig(s), loadAll(s, "users/"), loadAll(s, "votes/"),
+  const [stands, config, users, votes, claims, raffle] = await Promise.all([
+    getStands(s), getConfig(s), loadAll(s, "users/"), loadAll(s, "votes/"), loadAll(s, "claims/"),
     s.get("raffle", { type: "json" }),
   ]);
+  const claimsByPhone = Object.fromEntries(claims.map((c) => [c.key, c.value]));
   const usersByPhone = Object.fromEntries(users.map((u) => [u.key, u.value]));
-  const agg = Object.fromEntries(stands.map((x) => [x.id, { total: 0, count: 0, dist: [0, 0, 0, 0, 0], tags: {} }]));
+  const agg = Object.fromEntries(stands.map((x) => [x.id, { total: 0, count: 0, dist: [0, 0, 0, 0, 0], tags: {}, comments: [] }]));
   const voters = [];
   for (const { key: phone, value } of votes) {
     const entries = Object.entries(value).filter(([id]) => agg[id]);
     for (const [id, v] of entries) {
       agg[id].total += v.stars; agg[id].count += 1; agg[id].dist[v.stars - 1] += 1;
       for (const t of v.tags || []) agg[id].tags[t] = (agg[id].tags[t] || 0) + 1;
+      if (v.comment) agg[id].comments.push({ text: v.comment, stars: v.stars, at: v.at });
     }
     if (entries.length) voters.push({ phone, count: entries.length, votes: value });
   }
+  for (const a of Object.values(agg)) a.comments.sort((x, y) => String(y.at).localeCompare(String(x.at)));
   const ranking = stands
     .map((x) => ({ ...x, ...agg[x.id], avg: agg[x.id].count ? agg[x.id].total / agg[x.id].count : 0 }))
     .sort((a, b) =>
       (b.count >= MIN_VOTES_TO_RANK) - (a.count >= MIN_VOTES_TO_RANK) || b.avg - a.avg || b.count - a.count);
   const eligible = voters
-    .filter((v) => v.count >= config.minForRaffle && usersByPhone[v.phone])
+    .filter((v) => v.count >= GOAL && usersByPhone[v.phone])
     .map((v) => ({ phone: v.phone, name: usersByPhone[v.phone].name, count: v.count }));
-  return { stands, config, usersByPhone, voters, ranking, eligible, raffle: raffle || { winners: [] } };
+  // Premios: desbloqueados / canjeados por nivel.
+  const countBy = Object.fromEntries(voters.map((v) => [v.phone, v.count]));
+  const prizeStats = prizesFor(config).map((p) => ({ ...p, unlocked: 0, claimed: 0 }));
+  const prizesByPhone = {};
+  for (const phone of Object.keys(usersByPhone)) {
+    const st = prizeStatus(countBy[phone] || 0, claimsByPhone[phone] || {}, config);
+    prizesByPhone[phone] = st;
+    st.forEach((z, i) => { if (z.unlocked) prizeStats[i].unlocked++; if (z.claimed) prizeStats[i].claimed++; });
+  }
+  return { stands, config, usersByPhone, voters, ranking, eligible, prizeStats, prizesByPhone, raffle: raffle || { winners: [] } };
 }
 
 const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -50,8 +55,10 @@ export default async (req) => {
   const action = new URL(req.url).searchParams.get("action") || "summary";
 
   if (req.method === "GET" && action === "summary") {
-    const snap = await snapshot(s);
-    return json({
+    // Compartido 15 s entre el panel, la pantalla de proyección y varias pestañas abiertas.
+    const data = await cached(s, "summary", 15_000, async () => {
+      const snap = await snapshot(s);
+      return {
       stats: {
         registered: Object.keys(snap.usersByPhone).length,
         voters: snap.voters.length,
@@ -60,19 +67,27 @@ export default async (req) => {
       },
       ranking: snap.ranking, stands: snap.stands, config: snap.config, raffle: snap.raffle,
       eligible: snap.eligible.map((e) => ({ name: e.name, phoneMasked: maskPhone(e.phone), count: e.count })),
+      prizeStats: snap.prizeStats,
       minVotesToRank: MIN_VOTES_TO_RANK,
+      goal: GOAL,
+      builtAt: new Date().toISOString(),
+      };
     });
+    return json(data);
   }
 
   if (req.method === "GET" && action === "export") {
     const snap = await snapshot(s);
     const ids = snap.stands.map((x) => x.id);
-    const header = ["nombre", "celular", "registrado", "stands_votados", "en_sorteo", ...snap.stands.map((x) => x.name)];
+    const prizeList = prizesFor(snap.config);
+    const header = ["nombre", "celular", "registrado", "stands_votados", `completo_${GOAL}`, ...prizeList.map((p) => `premio_${p.key}`), ...snap.stands.map((x) => x.name), ...snap.stands.map((x) => `${x.name} · comentario`)];
     const votesBy = Object.fromEntries(snap.voters.map((v) => [v.phone, v.votes]));
     const rows = Object.values(snap.usersByPhone).map((u) => {
       const v = votesBy[u.phone] || {};
       const n = ids.filter((id) => v[id]).length;
-      return [u.name, u.phone, u.createdAt, n, n >= snap.config.minForRaffle ? "si" : "no", ...ids.map((id) => v[id]?.stars ?? "")];
+      const pz = snap.prizesByPhone[u.phone] || [];
+      const pcell = (z) => (z.claimed ? `canjeado ${z.claimedAt}` : z.unlocked ? "pendiente" : "");
+      return [u.name, u.phone, u.createdAt, n, n >= GOAL ? "si" : "no", ...pz.map(pcell), ...ids.map((id) => v[id]?.stars ?? ""), ...ids.map((id) => v[id]?.comment ?? "")];
     });
     const csv = "﻿" + [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
     return new Response(csv, {
@@ -93,6 +108,7 @@ export default async (req) => {
       return { id, name: cleanName(x.name) || `Stand ${i + 1}`, team: cleanName(x.team), pitch: String(x.pitch || "").trim().slice(0, 200) };
     });
     await s.setJSON("stands", stands);
+    await invalidate(s, "summary", "roster");
     return json({ stands });
   }
 
@@ -103,6 +119,7 @@ export default async (req) => {
       minForRaffle: Number.isInteger(body.minForRaffle) && body.minForRaffle > 0 ? body.minForRaffle : cur.minForRaffle,
     };
     await s.setJSON("config", next);
+    await invalidate(s, "summary", "roster");
     return json({ config: next });
   }
 
@@ -115,6 +132,7 @@ export default async (req) => {
     const winner = { phone: pick.phone, name: pick.name, at: new Date().toISOString() };
     const raffle = { winners: [...snap.raffle.winners, winner] };
     await s.setJSON("raffle", raffle);
+    await invalidate(s, "summary");
     return json({
       winner: { name: winner.name, phoneMasked: maskPhone(winner.phone), phone: winner.phone },
       pool: pool.map((p) => p.name),
@@ -125,12 +143,14 @@ export default async (req) => {
   if (action === "deleteUser") {
     const phone = String(body.phone || "").replace(/\D/g, "");
     if (!/^9\d{8}$/.test(phone)) return fail("Celular inválido");
-    await Promise.all([s.delete(`users/${phone}`), s.delete(`votes/${phone}`)]);
+    await Promise.all([s.delete(`users/${phone}`), s.delete(`votes/${phone}`), s.delete(`claims/${phone}`)]);
+    await invalidate(s, "summary", "roster");
     return json({ deleted: phone });
   }
 
   if (action === "resetRaffle") {
     await s.setJSON("raffle", { winners: [] });
+    await invalidate(s, "summary");
     return json({ raffle: { winners: [] } });
   }
 
