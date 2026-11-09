@@ -1,7 +1,7 @@
 // Canje de premios para el staff de los puestos.
 // Acceso: header x-staff-pin = STAFF_PIN (staff) o ADMIN_PIN (admin; además puede deshacer).
 import {
-  store, json, fail, readBody, getStands, getConfig, voteCount, prizeStatus, prizesFor, maskPhone, TICKET_MAX, ID_RE, loadAll, cached, patchCached,
+  store, json, fail, readBody, getStands, getConfig, voteCount, prizeStatus, prizesFor, maskPhone, TICKET_MAX, ID_RE, loadAll, cached, patchCached, withLock,
 } from "./_lib.mjs";
 
 const pins = () => ({
@@ -65,7 +65,7 @@ export default async (req) => {
     let matches;
     if (!q) matches = users;
     else matches = users.filter((u) => (digits.length >= 3 && u.phone.includes(digits)) || q.split(" ").every((w) => u.n.includes(w)) || (q.length >= 3 && u.code === q));
-    // Número de canje (1–500): se busca directo en las claves ticket/<premio>/<n>, siempre fresco.
+    // Número de canje (1–TICKET_MAX): se busca directo en las claves ticket/<premio>/<n>, siempre fresco.
     const tn = Number(digits);
     if (digits && digits === q && tn >= 1 && tn <= TICKET_MAX) {
       const keys = prize ? [prize] : prizesFor(config).map((p) => p.key);
@@ -102,28 +102,33 @@ export default async (req) => {
   if (!user) return fail("Participante no encontrado", 404);
 
   const claimsKey = `claims/${phone}`;
-  const claims = (await s.get(claimsKey, { type: "json" })) || {};
+  // Bajo bloqueo por persona: dos puestos que canjean a la misma persona a la vez no pueden entregar dos veces.
+  const res = await withLock(claimsKey, async () => {
+    const claims = (await s.get(claimsKey, { type: "json" })) || {};
 
-  if (action === "claim") {
-    const p = await person(s, user, stands, config);
-    const st = p.prizes.find((z) => z.key === key);
-    if (!st.unlocked) return fail(`${user.name} aún no desbloquea ${st.name}: le faltan ${st.missing} stands`, 409);
-    if (claims[key]) {
-      return json({ error: `YA CANJEÓ ${st.name.toUpperCase()}`, alreadyClaimed: true, claimedAt: claims[key].at, person: { ...p, phone: undefined, id: phone } }, 409);
+    if (action === "claim") {
+      const p = await person(s, user, stands, config);
+      const st = p.prizes.find((z) => z.key === key);
+      if (!st.unlocked) return fail(`${user.name} aún no desbloquea ${st.name}: le faltan ${st.missing} stands`, 409);
+      if (claims[key]) {
+        return json({ error: `YA CANJEÓ ${st.name.toUpperCase()}`, alreadyClaimed: true, claimedAt: claims[key].at, person: { ...p, phone: undefined, id: phone } }, 409);
+      }
+      claims[key] = { at: new Date().toISOString(), by: role };
+      await s.setJSON(claimsKey, claims);
+      await patchCached(s, "roster", (list) => list.map((u) => (u.phone === phone ? { ...u, claims } : u)));
+      return json({ ok: true, person: { ...(await person(s, user, stands, config)), phone: undefined, id: phone } });
     }
-    claims[key] = { at: new Date().toISOString(), by: role };
-    await s.setJSON(claimsKey, claims);
-    await patchCached(s, "roster", (list) => list.map((u) => (u.phone === phone ? { ...u, claims } : u)));
-    return json({ ok: true, person: { ...(await person(s, user, stands, config)), phone: undefined, id: phone } });
-  }
 
-  if (action === "unclaim") {
-    if (role !== "admin") return fail("Solo el admin puede deshacer un canje", 403);
-    delete claims[key];
-    await s.setJSON(claimsKey, claims);
-    await patchCached(s, "roster", (list) => list.map((u) => (u.phone === phone ? { ...u, claims } : u)));
-    return json({ ok: true, person: { ...(await person(s, user, stands, config)), id: phone } });
-  }
+    if (action === "unclaim") {
+      if (role !== "admin") return fail("Solo el admin puede deshacer un canje", 403);
+      delete claims[key];
+      await s.setJSON(claimsKey, claims);
+      await patchCached(s, "roster", (list) => list.map((u) => (u.phone === phone ? { ...u, claims } : u)));
+      return json({ ok: true, person: { ...(await person(s, user, stands, config)), id: phone } });
+    }
+    return null;
+  });
+  if (res) return res;
 
   return fail("Acción no válida", 400);
 };

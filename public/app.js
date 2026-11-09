@@ -42,6 +42,10 @@ function toast(msg) {
   toastTimer = setTimeout(() => $toast.classList.remove("show"), 2800);
 }
 
+// La página se sirve por la URL de los QR (Netlify, proxy), pero la API va directo a SiteGround:
+// así votos, vales y consultas automáticas no pasan por el anti-bots por IP de Netlify ni gastan sus créditos.
+const API_BASE = location.hostname === "semilla-lab-camposol.netlify.app" ? "https://alonsom22.sg-host.com" : "";
+
 // Si la red falla o la plataforma responde con su página de verificación anti-bots
 // (HTML en vez de JSON), reintenta con espera creciente antes de mostrar un error.
 async function api(path, { method = "GET", body } = {}, attempt = 0) {
@@ -49,7 +53,7 @@ async function api(path, { method = "GET", body } = {}, attempt = 0) {
   if (state.session) headers.authorization = `Bearer ${state.session.phone}:${state.session.token}`;
   let res;
   try {
-    res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    res = await fetch(API_BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
   } catch {
     if (attempt < 3) { await sleep([1500, 4000, 9000][attempt]); return api(path, { method, body }, attempt + 1); }
     throw Object.assign(new Error("Sin conexión. Revisa tu señal e inténtalo de nuevo."), { status: 0 });

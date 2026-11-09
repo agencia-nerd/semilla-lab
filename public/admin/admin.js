@@ -15,8 +15,12 @@ const toast = (m) => { $toast.textContent = m; $toast.classList.add("show"); cle
 const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h15M13 5l7 7-7 7"/></svg>`;
 const phrase = `<div class="phrase"><span>Cultiva</span><span>tu idea.</span><span class="out">Cosecha</span><span>innovación.</span></div>`;
 
+// La página se sirve por la URL de los QR (Netlify, proxy), pero la API va directo a SiteGround:
+// así votos, vales y consultas automáticas no pasan por el anti-bots por IP de Netlify ni gastan sus créditos.
+const API_BASE = location.hostname === "semilla-lab-camposol.netlify.app" ? "https://alonsom22.sg-host.com" : "";
+
 async function api(action, { method = "GET", body } = {}) {
-  const res = await fetch(`/api/admin?action=${action}`, {
+  const res = await fetch(`${API_BASE}/api/admin?action=${action}`, {
     method, headers: { "content-type": "application/json", "x-admin-pin": st.pin }, body: body ? JSON.stringify(body) : undefined,
   });
   if (action === "export" && res.ok) return res.blob();
@@ -283,30 +287,37 @@ function downloadQrPng(text, filename) {
   a.href = c.toDataURL("image/png"); a.download = filename; a.click();
 }
 
-// Hoja para cada puesto: los números del 1 al 500 en casillas para tachar al entregar.
+// Hojas para cada puesto: los números del 1 al ticketMax en casillas para tachar al entregar,
+// 500 por hoja A4 (con 1.000 números, cada premio lleva 2 hojas: 1–500 y 501–1.000).
+const PER_SHEET = 500;
 function tabHojas() {
   const $t = document.getElementById("tab");
   const prizes = st.data.prizeStats || [];
   const max = prizes[0]?.ticketMax || 500;
-  const nums = Array.from({ length: max }, (_, i) => `<span>${i + 1}</span>`).join("");
+  const parts = Math.ceil(max / PER_SHEET);
+  const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => `<span>${from + i}</span>`).join("");
   $t.innerHTML = `
     <div class="toolbar no-print">
       <button class="btn sm" id="printAll">Imprimir las ${prizes.length}</button>
       ${prizes.map((p) => `<button class="btn sm line" data-print="${p.key}">Solo ${esc(p.name)}</button>`).join("")}
-      <span class="tag dim">Una hoja A4 por puesto · casillas del 1 al ${max}</span>
+      <span class="tag dim">${parts > 1 ? `${parts} hojas A4 por puesto` : "Una hoja A4 por puesto"} · casillas del 1 al ${max.toLocaleString("es-PE")}</span>
     </div>
-    <p class="tag dim no-print">Cada vale muestra un número al azar, distinto para cada premio. La señora busca ese número en su hoja, lo tacha y entrega. Si ya está tachado, ese vale ya se usó.</p>
+    <p class="tag dim no-print">Cada vale muestra un número al azar, distinto para cada premio. La señora busca ese número en su hoja, lo tacha y entrega. Si ya está tachado, ese vale ya se usó.${parts > 1 ? ` Cada puesto recibe sus ${parts} hojas (del 1 al ${PER_SHEET} y desde el ${PER_SHEET + 1}).` : ""}</p>
     ${prizes.map((p) => {
       const s = prizeStyle(p.key);
-      return `<section class="sheet" data-sheet="${p.key}" style="--acc:${s.hex}">
+      return Array.from({ length: parts }, (_, k) => {
+        const from = k * PER_SHEET + 1, to = Math.min(max, (k + 1) * PER_SHEET);
+        const label = parts > 1 ? ` <em>· ${from}–${to}</em>` : "";
+        return `<section class="sheet" data-sheet="${p.key}" style="--acc:${s.hex}">
         <header class="sheet-h">
           <img src="/assets/semilla-bulb.webp" alt="" width="44" height="44">
-          <div><b>Hoja de canje · ${esc(p.name)}</b><span>Busca el número del vale y <u>táchalo</u> al entregar. Si ya está tachado, no entregues.</span></div>
+          <div><b>Hoja de canje · ${esc(p.name)}${label}</b><span>Busca el número del vale y <u>táchalo</u> al entregar. Si ya está tachado, no entregues.</span></div>
           <img class="sheet-prize" src="${s.img}" alt="">
         </header>
-        <div class="sheet-grid">${nums}</div>
-        <footer class="sheet-f">SemillaLab 2026 · Camposol · ${esc(p.name)} (nivel ${p.at} stands)</footer>
+        <div class="sheet-grid">${range(from, to)}</div>
+        <footer class="sheet-f">SemillaLab 2026 · Camposol · ${esc(p.name)} (nivel ${p.at} stands)${parts > 1 ? ` · hoja ${k + 1} de ${parts}` : ""}</footer>
       </section>`;
+      }).join("");
     }).join("")}`;
   const print = (key) => {
     document.querySelectorAll(".sheet").forEach((el) => el.classList.toggle("skip", !!key && el.dataset.sheet !== key));

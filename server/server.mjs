@@ -6,7 +6,7 @@
 import http from "node:http";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = path.join(ROOT, "public");
@@ -21,7 +21,7 @@ const FN_DIR = path.join(ROOT, "netlify", "functions");
 const routes = new Map();
 for (const f of await fs.readdir(FN_DIR)) {
   if (!f.endsWith(".mjs") || f.startsWith("_")) continue;
-  const mod = await import(path.join(FN_DIR, f));
+  const mod = await import(pathToFileURL(path.join(FN_DIR, f)).href);
   if (mod.config?.path) routes.set(mod.config.path, mod.default);
 }
 
@@ -30,6 +30,21 @@ const TYPES = {
   ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2", ".json": "application/json", ".ico": "image/x-icon",
 };
 const SEC_HEADERS = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin" };
+
+// CORS: la página se abre en la URL de los QR (Netlify, proxy) y llama a la API directo en este servidor.
+// Solo se permite ese origen. Max-Age evita repetir la verificación previa (OPTIONS) en cada llamada.
+const CORS_ORIGINS = new Set((process.env.CORS_ORIGINS || "https://semilla-lab-camposol.netlify.app").split(",").map((o) => o.trim()).filter(Boolean));
+function corsHeaders(req) {
+  const origin = req.headers.origin;
+  if (!origin || !CORS_ORIGINS.has(origin)) return {};
+  return {
+    "access-control-allow-origin": origin,
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-headers": "content-type, authorization, x-admin-pin, x-staff-pin",
+    "access-control-max-age": "86400",
+    vary: "Origin",
+  };
+}
 
 async function serveStatic(urlPath, res) {
   let rel = decodeURIComponent(urlPath);
@@ -57,6 +72,8 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   const handler = routes.get(url.pathname);
   if (!handler) return serveStatic(url.pathname, res);
+  const cors = corsHeaders(req);
+  if (req.method === "OPTIONS") { res.writeHead(204, { ...cors, "cache-control": "no-store" }).end(); return; }
 
   try {
     const chunks = [];
@@ -69,11 +86,11 @@ const server = http.createServer(async (req, res) => {
       body: ["GET", "HEAD"].includes(req.method) ? undefined : Buffer.concat(chunks),
     });
     const response = await handler(request);
-    res.writeHead(response.status, { ...Object.fromEntries(response.headers), ...SEC_HEADERS });
+    res.writeHead(response.status, { ...Object.fromEntries(response.headers), ...SEC_HEADERS, ...cors });
     res.end(Buffer.from(await response.arrayBuffer()));
   } catch (e) {
     console.error(e);
-    res.writeHead(500, { "content-type": "application/json" }).end(JSON.stringify({ error: "Error interno" }));
+    res.writeHead(500, { "content-type": "application/json", ...cors }).end(JSON.stringify({ error: "Error interno" }));
   }
 });
 

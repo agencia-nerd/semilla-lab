@@ -57,6 +57,7 @@ Alineada con las piezas de campaña ("Trabajamos el campo para mejorar vidas"): 
 | `STAFF_PIN` | siempre | PIN de la página de canje `/staff` para los puestos. Solo busca y marca entregas. |
 | `STORAGE_DIR` | servidor propio | Carpeta de datos (JSON). Si está definida se usa disco en vez de Netlify Blobs. Por defecto `./data` al usar `npm start`. |
 | `PORT` | servidor propio | Puerto HTTP (por defecto 8080). |
+| `CORS_ORIGINS` | servidor propio | Orígenes que pueden llamar a la API desde otro dominio, separados por coma. Por defecto `https://semilla-lab-camposol.netlify.app`: la página se abre por la URL de los QR (Netlify hace de proxy) y la API va directo a este servidor (`API_BASE` en `public/app.js`, `staff.js` y `admin.js`). |
 
 ## Opción A · Servidor propio (Node)
 
@@ -128,7 +129,7 @@ Caché: el resumen del panel y el padrón del staff se calculan como máximo cad
 | `codes/<código>` | `{phone, at}` reserva del código de trabajador (uno por celular) |
 | `votes/<celular>` | `{ <standId>: {stars, tags, comment?, at} }` (un documento por persona: sin choques de escritura) |
 | `claims/<celular>` | `{ <premio>: {at, by} }` premios entregados (`by` = staff o admin) |
-| `tickets/<celular>` | `{ <premio>: número }` números de canje de la persona (1–500, se asignan al desbloquear) |
+| `tickets/<celular>` | `{ <premio>: número }` números de canje de la persona (1–1.000, se asignan al desbloquear) |
 | `ticket/<premio>/<n>` | `{phone, at}` dueño de cada número; se crea con `onlyIfNew` para que nunca se repita |
 | `stands` | lista de stands `{id, name, team, pitch}`; `team` es la categoría (si no existe se usan los 10 finalistas de `_lib.mjs`) |
 | `config` | `{votingOpen, minForRaffle}` |

@@ -51,11 +51,11 @@ export function prizeStatus(count, claims = {}, config, tickets = {}) {
   }));
 }
 
-// Números de canje: cada premio desbloqueado recibe un número al azar del 1 al TICKET_MAX,
-// único por premio (cada puesto tiene su hoja impresa del 1 al 500 y tacha el número del vale).
+// Números de canje: cada premio desbloqueado recibe un número al azar del 1 al TICKET_MAX (1.000: evento de hasta ~800 personas),
+// único por premio (cada puesto tiene sus hojas impresas del 1 al 1.000 y tacha el número del vale).
 // La unicidad la garantiza una clave por número creada con onlyIfNew: si dos personas sacan
 // el mismo número a la vez, solo una lo obtiene y la otra prueba con otro.
-export const TICKET_MAX = 500;
+export const TICKET_MAX = 1000;
 
 async function takeTicket(s, prize, phone) {
   const claim = async (n) => (await s.setJSON(`ticket/${prize}/${n}`, { phone, at: new Date().toISOString() }, { onlyIfNew: true }))?.modified !== false;
@@ -72,8 +72,25 @@ async function takeTicket(s, prize, phone) {
   return null; // se acabaron los números
 }
 
+// Bloqueo por clave dentro del proceso: las operaciones leer → modificar → escribir de una misma
+// persona (votar, asignar números, canjear) se hacen una tras otra. Así dos puestos que canjean a la
+// misma persona en el mismo instante no pueden entregar dos veces, y un voto no pisa a otro.
+// (El servidor propio corre en un solo proceso; en Netlify reduce el riesgo pero no lo elimina.)
+const locks = new Map();
+export function withLock(key, fn) {
+  const prev = locks.get(key) || Promise.resolve();
+  const run = prev.then(fn, fn);
+  const tail = run.catch(() => {});
+  locks.set(key, tail);
+  tail.then(() => { if (locks.get(key) === tail) locks.delete(key); });
+  return run;
+}
+
 // Asigna (una sola vez) los números de los premios desbloqueados y devuelve todos los de la persona.
-export async function ensureTickets(s, phone, count, config) {
+export function ensureTickets(s, phone, count, config) {
+  return withLock(`tickets/${phone}`, () => ensureTicketsNow(s, phone, count, config));
+}
+async function ensureTicketsNow(s, phone, count, config) {
   const key = `tickets/${phone}`;
   const tickets = (await s.get(key, { type: "json" })) || {};
   const missing = prizesFor(config).filter((p) => count >= p.at && !tickets[p.key]);
@@ -191,7 +208,10 @@ export async function invalidate(s, ...keys) {
 }
 
 // Ajusta un documento cacheado sin recalcularlo (p. ej. tras un canje). Si no hay caché, no hace nada.
-export async function patchCached(s, key, fn) {
+export function patchCached(s, key, fn) {
+  return withLock(`cache/${key}`, () => patchCachedNow(s, key, fn));
+}
+async function patchCachedNow(s, key, fn) {
   const doc = await s.get(`cache/${key}`, { type: "json" }).catch(() => null);
   if (!doc) return;
   doc.data = fn(doc.data);

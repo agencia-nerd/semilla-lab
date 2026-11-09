@@ -61,7 +61,7 @@ Se puede cambiar el voto de un stand mientras la votación esté abierta (queda 
 
 - Se **acumulan**: quien vota 5 tiene canchita y gaseosa. Cada premio se canjea **una sola vez**.
 - **El vale está en la app**: la persona abre el premio y muestra su pantalla en el puesto. Cuando el staff lo marca, el vale cambia solo a **✓ CANJEADO** con la hora.
-- **Número de canje**: cada vale muestra en grande un número al azar del 1 al 500, distinto para cada premio y que nunca se repite entre personas. Es el que se tacha en la hoja impresa del puesto (ver 3.1).
+- **Número de canje**: cada vale muestra en grande un número al azar del 1 al 1.000, distinto para cada premio y que nunca se repite entre personas. Es el que se tacha en la hoja impresa del puesto (ver 3.1).
 
 ---
 
@@ -125,7 +125,7 @@ La lista se actualiza sola cada 30 segundos (al buscar un nombre, sus datos siem
 
 Para las personas que entregan los snacks y prefieren no usar el celular.
 
-1. En el panel, pestaña **Hojas de canje** → **Imprimir las 4** (o "Solo Canchita", etc.). Sale una hoja A4 por premio con casillas del 1 al 500.
+1. En el panel, pestaña **Hojas de canje** → **Imprimir las 4** (o "Solo Canchita", etc.). Salen 2 hojas A4 por premio (casillas del 1 al 500 y del 501 al 1.000); cada puesto recibe sus 2 hojas.
 2. Cada puesto recibe **su** hoja (canchita, gaseosa, helado o hot dog).
 3. La persona muestra su vale: tiene un **número grande**.
 4. La señora busca ese número en su hoja:
@@ -135,7 +135,7 @@ Para las personas que entregan los snacks y prefieren no usar el celular.
 
 Las hojas y `/staff` se pueden usar a la vez: en `/staff` también se puede buscar por el número del vale. Si se usa solo la hoja, el panel no registra la entrega (la hoja es el registro).
 
-En **Resultados › Premios** se ve cuántos números lleva asignados cada premio (máximo 500). Si se acerca a 500 aparece "⚠ casi agotados".
+En **Resultados › Premios** se ve cuántos números lleva asignados cada premio (máximo 1.000). Si se acerca a 1.000 aparece "⚠ casi agotados".
 
 ## 4. Checklist del día del evento
 

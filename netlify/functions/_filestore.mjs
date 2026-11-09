@@ -6,6 +6,7 @@ import path from "node:path";
 
 const enc = (key) => encodeURIComponent(key) + ".json";
 const dec = (file) => decodeURIComponent(file.slice(0, -5));
+let seq = 0;
 
 export function fileStore(dir) {
   const ready = fs.mkdir(dir, { recursive: true });
@@ -29,9 +30,18 @@ export function fileStore(dir) {
         try { await fs.writeFile(file(key), JSON.stringify(value), { flag: "wx" }); return { modified: true }; }
         catch (e) { if (e.code === "EEXIST") return { modified: false }; throw e; }
       }
-      const tmp = `${file(key)}.${process.pid}.${Date.now()}.tmp`;
+      // Nombre temporal único (dos escrituras de la misma clave en el mismo milisegundo no deben chocar).
+      const tmp = `${file(key)}.${process.pid}.${Date.now()}.${++seq}.tmp`;
       await fs.writeFile(tmp, JSON.stringify(value));
-      await fs.rename(tmp, file(key));
+      for (let i = 0; ; i++) {
+        try { await fs.rename(tmp, file(key)); break; }
+        catch (e) {
+          // En Windows el rename falla (EPERM/EBUSY) si otro pedido está leyendo el archivo: se reintenta.
+          if (i < 5 && (e.code === "EPERM" || e.code === "EBUSY" || e.code === "EACCES")) { await new Promise((r) => setTimeout(r, 10 * (i + 1))); continue; }
+          await fs.rm(tmp, { force: true });
+          throw e;
+        }
+      }
       return { modified: true };
     },
     async delete(key) {

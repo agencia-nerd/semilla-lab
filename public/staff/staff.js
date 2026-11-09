@@ -27,8 +27,12 @@ let tt;
 const toast = (m) => { $toast.textContent = m; $toast.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => $toast.classList.remove("show"), 2600); };
 const arrow = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h15M13 5l7 7-7 7"/></svg>`;
 
+// La página se sirve por la URL de los QR (Netlify, proxy), pero la API va directo a SiteGround:
+// así votos, vales y consultas automáticas no pasan por el anti-bots por IP de Netlify ni gastan sus créditos.
+const API_BASE = location.hostname === "semilla-lab-camposol.netlify.app" ? "https://alonsom22.sg-host.com" : "";
+
 async function api(path, { method = "GET", body } = {}) {
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     method, headers: { "content-type": "application/json", "x-staff-pin": st.pin }, body: body ? JSON.stringify(body) : undefined,
   }).catch(() => null);
   if (!res) throw Object.assign(new Error("Sin conexión"), { status: 0 });

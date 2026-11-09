@@ -1,3 +1,4 @@
-# Todo lo que entra a semilla-lab-camposol.netlify.app (incluidos los QR impresos)
-# se redirige al servidor en SiteGround, conservando la ruta y ?stand=...
-/*  https://alonsom22.sg-host.com/:splat  302!
+# Proxy: todo lo que entra a semilla-lab-camposol.netlify.app (incluidos los QR impresos)
+# se sirve desde el servidor en SiteGround, SIN cambiar la URL que ve el usuario.
+# 200 = proxy (la barra sigue mostrando netlify.app) · ! = aplica aunque exista un archivo local.
+/*  https://alonsom22.sg-host.com/:splat  200!

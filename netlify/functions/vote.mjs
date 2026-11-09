@@ -1,4 +1,4 @@
-import { store, json, fail, readBody, authUser, getStands, getConfig, limited, TAG_KEYS, voteCount, prizeStatus, ensureTickets } from "./_lib.mjs";
+import { store, json, fail, readBody, authUser, getStands, getConfig, limited, TAG_KEYS, voteCount, prizeStatus, ensureTickets, withLock } from "./_lib.mjs";
 
 export default async (req) => {
   if (req.method !== "POST") return fail("Método no permitido", 405);
@@ -15,11 +15,14 @@ export default async (req) => {
   if (!Number.isInteger(n) || n < 1 || n > 5) return fail("Elige de 1 a 5 estrellas");
 
   const key = `votes/${user.phone}`;
-  const votes = (await s.get(key, { type: "json" })) || {};
   const cleanTags = Array.isArray(tags) ? [...new Set(tags.filter((t) => TAG_KEYS.includes(t)))].slice(0, 2) : [];
   const cleanComment = String(comment || "").replace(/\s+/g, " ").trim().slice(0, 280);
-  votes[standId] = { stars: n, tags: cleanTags, ...(cleanComment && { comment: cleanComment }), at: new Date().toISOString() };
-  await s.setJSON(key, votes);
+  const votes = await withLock(key, async () => {
+    const cur = (await s.get(key, { type: "json" })) || {};
+    cur[standId] = { stars: n, tags: cleanTags, ...(cleanComment && { comment: cleanComment }), at: new Date().toISOString() };
+    await s.setJSON(key, cur);
+    return cur;
+  });
   const count = voteCount(votes, stands);
   const [claims, tickets] = await Promise.all([
     s.get(`claims/${user.phone}`, { type: "json" }).then((c) => c || {}),
