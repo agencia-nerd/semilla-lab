@@ -6,6 +6,24 @@ const $toast = document.getElementById("toast");
 const SS_PIN = "semilla.adminPin";
 const TAG_LABEL = Object.fromEntries(TAGS);
 
+// Estilos de: puesto al costado, acciones al final del ranking y pop-up de felicidades.
+document.head.insertAdjacentHTML("beforeend", `<style>
+  .rank li { grid-template-columns: 54px 64px 1fr auto; }
+  .live .rank li { grid-template-columns: 64px 76px 1fr auto; }
+  .rank .pos { display: grid; place-items: center; text-align: center; font: 800 30px/1 var(--display); color: var(--teal, #027D78); }
+  .live .rank .pos { font-size: 40px; }
+  .rank .pos small { display: block; margin-top: 3px; font: 700 9px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
+  .rank li.first .pos { color: var(--acc-fg); background: var(--acc); border-radius: 14px; height: 54px; }
+  .rank li.muted .pos { color: var(--mute); }
+  @media (max-width: 560px) { .rank li { grid-template-columns: 38px 52px 1fr auto; gap: 10px; } .rank .pos { font-size: 22px; } .rank li.first .pos { height: 42px; } }
+  .end-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin: 28px 0 10px; padding-top: 18px; border-top: var(--b2); }
+  .btn.danger { background: #B3261E; border-color: #B3261E; color: #fff; }
+  .w-congrats { margin: 4px 0 2px; font: 800 clamp(40px, 10vw, 68px)/1 var(--display); color: var(--teal, #027D78); }
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 91; overflow: hidden; }
+  .confetti i { position: absolute; top: -20px; width: 10px; height: 16px; opacity: .95; animation: confFall linear infinite; }
+  @keyframes confFall { to { transform: translateY(110vh) rotate(720deg); } }
+</style>`);
+
 const st = { pin: sessionStorage.getItem(SS_PIN) || "", tab: "resumen", data: null, poll: null };
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -72,9 +90,11 @@ function rankList(ranking, minVotes, showComments = false) {
   return `<ol class="rank">${ranking.map((r, i) => {
     const ranked = r.count >= minVotes;
     const si = standIdx(r.id);
-    return `<li class="${ranked ? "" : "muted"}" style="${accentStyle(si)};--i:${i}">
+    const posCell = ranked ? `${r.pos}°${r.tie ? "<small>empate</small>" : ""}` : "–";
+    return `<li class="${ranked ? "" : "muted"}${ranked && r.pos === 1 ? " first" : ""}" style="${accentStyle(si)};--i:${i}">
+      <span class="pos" aria-label="Puesto">${posCell}</span>
       <span class="n">${r.logo ? `<img src="${esc(r.logo)}" alt="">` : ""}<em>${pad(si + 1)}</em></span>
-      <div><h3>${esc(r.name)}</h3><div class="meta tag">#${r.pos || i + 1}${r.tie ? " · empate" : ""} · ${esc(r.team)} · ${r.count} voto${r.count === 1 ? "" : "s"}${r.fives ? ` · ${r.fives}× nota 5` : ""}${ranked ? "" : ` · mín. ${minVotes}`}</div>
+      <div><h3>${esc(r.name)}</h3><div class="meta tag">${esc(r.team)} · ${r.count} voto${r.count === 1 ? "" : "s"}${r.fives ? ` · ${r.fives}× nota 5` : ""}${ranked ? "" : " · sin votos"}</div>
         <div class="bar"><i style="width:${(r.avg / 5) * 100}%"></i></div>
         ${r.tags && Object.keys(r.tags).length ? `<div class="tags">${topTags(r.tags)}</div>` : ""}
         ${showComments && r.comments?.length ? `<details class="cmts"><summary class="tag">${r.comments.length} comentario${r.comments.length === 1 ? "" : "s"}</summary>
@@ -117,8 +137,12 @@ function tabResumen() {
         <span class="tag dim">● ${d.config.votingOpen ? "Abierta" : "Cerrada"} · se actualiza cada 30 s</span>
       </div>
       <div class="sec tag"><span>Favorito del público</span><span class="dim">Ranking en vivo</span></div>
-      <div class="rules tag">Reglas: compiten los stands con al menos ${d.minVotesToRank} votos. Gana el <b>mayor promedio</b>; si empatan, <b>más votos totales</b>; luego <b>más votos con nota 5</b>; luego <b>más votos con nota 4</b>. Si siguen iguales en todo, comparten el puesto.</div>
-      ${d.ranking.length ? rankList(d.ranking, d.minVotesToRank, true) : `<p class="empty tag">Sin stands.</p>`}`;
+      <div class="rules tag">Reglas: gana el <b>mayor promedio</b>; si empatan, <b>más calificaciones de 5 estrellas</b>; si persiste, <b>más votantes</b>. Si coinciden en todo, es empate y comparten el puesto.</div>
+      ${d.ranking.length ? rankList(d.ranking, d.minVotesToRank, true) : `<p class="empty tag">Sin stands.</p>`}
+      <div class="end-actions">
+        <button class="btn" id="closeVoteEnd">${d.config.votingOpen ? "Cerrar votación" : "Ver ganador"}</button>
+        <button class="btn sm danger" id="resetAll">Resetear todo</button>
+      </div>`;
     document.getElementById("toggleVote").addEventListener("click", async () => {
       const open = !st.data.config.votingOpen;
       if (!confirm(open ? "¿Reabrir la votación?" : "¿Cerrar la votación? Nadie podrá votar ni cambiar su voto.")) return;
@@ -132,6 +156,23 @@ function tabResumen() {
       a.click(); URL.revokeObjectURL(a.href);
     });
     document.getElementById("live").addEventListener("click", openLive);
+    document.getElementById("closeVoteEnd").addEventListener("click", async () => {
+      if (st.data.config.votingOpen) {
+        if (!confirm("¿Cerrar la votación? Nadie podrá votar ni cambiar su voto.")) return;
+        await api("config", { method: "POST", body: { votingOpen: false } });
+        toast("Votación cerrada");
+      }
+      await refresh(); paint(); winnerModal(st.data);
+    });
+    document.getElementById("resetAll").addEventListener("click", async () => {
+      if (!confirm("¿Estás seguro de resetear TODO?\n\nSe borran todos los votos, participantes, premios, canjes y números de canje. Los stands se mantienen y la votación se reabre.\n\nNo se puede deshacer.")) return;
+      const word = prompt('Para confirmar, escribe RESETEAR');
+      if ((word || "").trim().toUpperCase() !== "RESETEAR") { toast("Reset cancelado"); return; }
+      try {
+        await api("resetAll", { method: "POST", body: { confirm: "RESETEAR" } });
+        await refresh(); paint(); toast("Todo quedó en cero · votación abierta");
+      } catch (e) { toast("No se pudo resetear: " + e.message); }
+    });
     document.getElementById("showWinner")?.addEventListener("click", async () => { await refresh(); winnerModal(st.data); });
   };
   paint();
@@ -156,14 +197,21 @@ function winnerModal(d) {
   };
   el.innerHTML = `<div class="w-box" role="dialog" aria-modal="true" aria-label="Favorito del público">
       <div class="tag w-kick">Votación cerrada · SemillaLab 2026</div>
+      ${top.length ? `<div class="w-congrats">¡Felicidades!</div>` : ""}
       <h1>${top.length > 1 ? "Empate en el<br>primer puesto" : "Favorito<br>del público"}</h1>
-      ${top.length ? top.map(card).join("") : `<p class="tag">Ningún stand llegó al mínimo de ${d.minVotesToRank} votos.</p>`}
+      ${top.length ? top.map(card).join("") : `<p class="tag">Aún no hay votos.</p>`}
       <button class="btn" id="wClose">Cerrar</button>
     </div>`;
-  document.body.appendChild(el);
-  const close = () => el.remove();
-  el.querySelector("#wClose").addEventListener("click", close);
-  el.addEventListener("click", (e) => { if (e.target === el) close(); });
+  const conf = document.createElement("div");
+  conf.className = "confetti";
+  if (top.length) {
+    const cols = ["#027D78", "#F2C230", "#E8662B", "#8BC34A", "#7E57C2", "#EC407A"];
+    conf.innerHTML = Array.from({ length: 90 }, (_, k) =>
+      `<i style="left:${Math.random() * 100}%;background:${cols[k % cols.length]};animation-duration:${2.8 + Math.random() * 3}s;animation-delay:${-Math.random() * 5}s;border-radius:${k % 3 ? 2 : 50}px"></i>`).join("");
+  }
+  document.body.append(el, conf);
+  // Se queda en pantalla hasta apretar "Cerrar" (no se cierra tocando fuera).
+  el.querySelector("#wClose").addEventListener("click", () => { el.remove(); conf.remove(); });
 }
 
 function openLive() {

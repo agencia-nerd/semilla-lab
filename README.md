@@ -113,6 +113,7 @@ Todas responden JSON. Autenticación del participante: header `Authorization: Be
 | POST | `/api/admin?action=config` | `x-admin-pin` | `{votingOpen?, minForRaffle?}` | config |
 | POST | `/api/admin?action=draw` | `x-admin-pin` | — | ganador al azar entre elegibles |
 | POST | `/api/admin?action=resetRaffle` | `x-admin-pin` | — | vacía ganadores |
+| POST | `/api/admin?action=resetAll` | `x-admin-pin` | `{confirm:"RESETEAR"}` | borra votos, participantes, códigos, canjes, números de canje y sorteo; mantiene los stands y reabre la votación (botón "Resetear todo" del panel) |
 | POST | `/api/admin?action=deleteUser` | `x-admin-pin` | `{phone}` | borra participante y sus votos |
 
 Validaciones del servidor: celular peruano `^9\d{8}$` (acepta prefijo 51), nombre con apellido, nota 1–5, tags de una lista fija, votación abierta.

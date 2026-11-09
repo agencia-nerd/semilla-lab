@@ -71,16 +71,16 @@ Entrar con el PIN. Tres pestañas:
 
 ### Resultados
 - Registrados · ya votaron · votos totales · completaron 10 (todos los premios).
-- **Cierre de votación**: al activarlo nadie puede votar ni cambiar su voto, y aparece en pantalla el **Favorito del público** (el primer puesto, con su promedio, votos y notas 5). Si hay empate total en el primer puesto, muestra a todos los empatados. Después se puede volver a ver con **Ver ganador**, o **Reabrir votación**.
+- **Cierre de votación**: al activarlo (arriba, o con el botón **Cerrar votación** al final del ranking) nadie puede votar ni cambiar su voto, y aparece un pop-up de **¡Felicidades!** con confeti y el **Favorito del público** (el primer puesto, con su promedio, votos y notas 5). Si hay empate total en el primer puesto, muestra a todos los empatados. El pop-up se queda en pantalla hasta apretar **Cerrar**. Después se puede volver a ver con **Ver ganador**, o **Reabrir votación**.
+- **Resetear todo** (botón rojo al final del ranking): borra votos, participantes, premios, canjes, números de canje y sorteo, y reabre la votación. Los stands se mantienen. Pide confirmar dos veces (pregunta "¿Estás seguro?" y luego escribir RESETEAR). No se puede deshacer: exportar el CSV antes si se quiere guardar algo. Quien tenía la app abierta vuelve a la pantalla de registro.
 - **Proyectar**: vista a pantalla completa con la frase y el ranking en vivo (se actualiza cada 30 s), para la pantalla del evento.
 - **Exportar CSV**: participantes, celular, fecha, cuántos stands votó, si completó los 10, el estado de cada premio, y la nota de cada stand.
-- **Favorito del público** (ranking en vivo). Reglas, en este orden:
-  0. Compiten los stands con **al menos 3 votos** (con menos quedan al final, sin puesto).
-  1. Mayor **promedio** de votos.
-  2. Si empatan: mayor **cantidad de votos** totales.
-  3. Si siguen empatados: más votos con **nota 5**.
-  4. Si siguen empatados: más votos con **nota 4**.
-  - Solo si dos stands son idénticos en todo comparten el puesto (aparece "empate"). Las reglas se muestran en el panel, sobre el ranking. También muestra lo que el público marcó como "lo más fuerte".
+- **Favorito del público** (ranking en vivo). A la izquierda de cada stand se ve su **puesto** (1°, 2°, 3°…; "empate" si comparten puesto; "–" si aún no tiene votos). Reglas, en este orden:
+  1. Mayor **promedio** de calificaciones (se compara exacto; en pantalla se ve con 2 decimales).
+  2. Si empatan: más calificaciones de **5 estrellas**.
+  3. Si siguen empatados: más **votantes**.
+  - No hay mínimo de votos: compite todo stand con al menos 1 voto.
+  - Si coinciden en promedio, notas 5 y votantes, es **empate**: comparten el puesto (aparece "empate"). Las reglas se muestran en el panel, sobre el ranking. También muestra lo que el público marcó como "lo más fuerte".
 
 ### Stands
 - Editar nombre, **categoría** y la idea en una línea; agregar, eliminar y reordenar.

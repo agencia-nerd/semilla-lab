@@ -5,7 +5,8 @@ const GOAL = Math.max(...PRIZES.map((p) => p.at));
 
 // En local (netlify dev) el PIN por defecto es "semilla2026"; en producción ADMIN_PIN es obligatorio.
 const PIN = () => process.env.ADMIN_PIN || (process.env.NETLIFY_DEV ? "semilla2026" : null);
-const MIN_VOTES_TO_RANK = 3;
+// Sin mínimo de votos: compite todo stand con al menos 1 voto (los de 0 votos quedan al final, sin puesto).
+const MIN_VOTES_TO_RANK = 1;
 
 async function snapshot(s) {
   const [stands, config, users, votes, claims, tickets, raffle] = await Promise.all([
@@ -27,11 +28,15 @@ async function snapshot(s) {
     if (entries.length) voters.push({ phone, count: entries.length, votes: value });
   }
   for (const a of Object.values(agg)) a.comments.sort((x, y) => String(y.at).localeCompare(String(x.at)));
-  // Favorito del público. Compiten los stands con al menos MIN_VOTES_TO_RANK votos y se ordenan por:
-  // 1) mayor promedio · 2) más votos totales · 3) más votos con nota 5 · 4) más votos con nota 4.
-  // Si aun así quedan iguales en todo, comparten el puesto (tie: true).
-  const key = (r) => [r.count >= MIN_VOTES_TO_RANK ? 1 : 0, Math.round(r.avg * 1e6), r.count, r.dist[4], r.dist[3]];
-  const cmp = (a, b) => { const x = key(a), y = key(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] - x[i]; return 0; };
+  // Favorito del público (criterio de Luciana). Se ordena por:
+  // 1) mayor promedio (comparado exacto, sin redondear: total_a * votos_b vs total_b * votos_a)
+  // 2) si empatan, más calificaciones de 5 estrellas · 3) si persiste, más votantes.
+  // Si coinciden en promedio, notas 5 y votantes, es empate: comparten el puesto (tie: true).
+  const cmp = (a, b) => {
+    const ra = a.count >= MIN_VOTES_TO_RANK, rb = b.count >= MIN_VOTES_TO_RANK;
+    if (ra !== rb) return ra ? -1 : 1;
+    return (b.total * a.count - a.total * b.count) || (b.dist[4] - a.dist[4]) || (b.count - a.count);
+  };
   const ranking = stands
     .map((x) => ({ ...x, ...agg[x.id], avg: agg[x.id].count ? agg[x.id].total / agg[x.id].count : 0, fives: agg[x.id].dist[4] }))
     .sort((a, b) => cmp(a, b) || a.name.localeCompare(b.name, "es"));
@@ -163,6 +168,25 @@ export default async (req) => {
     ]);
     await invalidate(s, "summary", "roster");
     return json({ deleted: phone });
+  }
+
+  // Reset total (pedido explícito desde el panel, con doble confirmación): borra votos, participantes,
+  // códigos, premios/canjes, números de canje y sorteo. Mantiene los stands y reabre la votación.
+  if (action === "resetAll") {
+    if (body.confirm !== "RESETEAR") return fail("Falta la confirmación");
+    let deleted = 0;
+    for (const prefix of ["votes/", "users/", "codes/", "claims/", "tickets/", "ticket/", "cache/"]) {
+      const { blobs } = await s.list({ prefix });
+      for (let i = 0; i < blobs.length; i += 50) {
+        await Promise.all(blobs.slice(i, i + 50).map((x) => s.delete(x.key)));
+      }
+      deleted += blobs.length;
+    }
+    const cur = await getConfig(s);
+    const config = { ...cur, votingOpen: true };
+    await Promise.all([s.setJSON("raffle", { winners: [] }), s.setJSON("config", config)]);
+    await invalidate(s, "summary", "roster");
+    return json({ ok: true, deleted, config });
   }
 
   if (action === "resetRaffle") {
