@@ -43,6 +43,10 @@ Unos 135 ms de cada respuesta son la distancia de red hasta el servidor; el serv
 - **6 de 6.618 solicitudes (0,09 %)** perdieron la conexión en ese momento: 1 voto, 2 consultas del vale y 3 archivos JS/CSS. En el celular, la app reintenta sola (a los 1,5 s); el script de prueba no reintenta.
 - **No se perdió ningún dato**: 153/153 registros y todos los votos confirmados quedaron guardados.
 
+### T6 · Celulares reales
+
+Pruebas manuales con varios celulares (Android y iPhone): QR impreso con la cámara, escáner de la app, registro con código, votos, vale con número (se asignaron números mayores a 500: 870, 983), canje en `/staff`, hojas de canje (2 por premio, se imprimen bien) y cierre de votación. **Todo funcionó.** La barra mostró siempre `semilla-lab-camposol.netlify.app`. Quedó pendiente en celular el desbloqueo de gaseosa, helado y hot dog (nadie llegó a 5 votos), que sí se validó en las pruebas de carga (800/800).
+
 ## Problemas encontrados y corregidos
 
 1. **Doble canje simultáneo.** Si dos puestos canjeaban a la misma persona en el mismo instante, ambos podían entregar. Antes solo se habían probado dobles canjes uno después del otro. Ahora el canje, el voto y la asignación de números se procesan uno tras otro por persona (`withLock` en `netlify/functions/_lib.mjs`). Resultado: 103 intentos simultáneos, 0 entregados dos veces.
