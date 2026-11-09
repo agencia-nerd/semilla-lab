@@ -1,0 +1,371 @@
+{
+  "profile": "evento",
+  "api": "https://alonsom22.sg-host.com",
+  "page": "https://alonsom22.sg-host.com",
+  "origin": "https://semilla-lab-camposol.netlify.app",
+  "users": 150,
+  "rampS": 120,
+  "thinkS": [
+    10,
+    25
+  ],
+  "durationS": 390,
+  "requests": 6618,
+  "rpsAvg": 17,
+  "rpsPeak10s": 35.9,
+  "maxInflight": 19,
+  "spike": null,
+  "claims": {
+    "ok": 136,
+    "doubleTries": 15,
+    "doubleBlocked": 15,
+    "raceTries": 13,
+    "raceDoubleGranted": 0
+  },
+  "close": {
+    "rejected": true,
+    "top": {
+      "name": "Smart Track IOT",
+      "avg": 3.0533333333333332,
+      "votes": 150
+    }
+  },
+  "corsMissing": 1,
+  "expected": {
+    "registered": 153,
+    "votes": 1500
+  },
+  "server": {
+    "registered": 153,
+    "voters": 151,
+    "votes": 1502,
+    "eligible": 149
+  },
+  "prizeStats": [
+    {
+      "key": "canchita",
+      "unlocked": 151,
+      "tickets": 151,
+      "claimed": 42
+    },
+    {
+      "key": "gaseosa",
+      "unlocked": 150,
+      "tickets": 150,
+      "claimed": 37
+    },
+    {
+      "key": "helado",
+      "unlocked": 150,
+      "tickets": 150,
+      "claimed": 31
+    },
+    {
+      "key": "pancho",
+      "unlocked": 149,
+      "tickets": 149,
+      "claimed": 27
+    }
+  ],
+  "cleaned": 151,
+  "issues": [],
+  "endpoints": [
+    {
+      "endpoint": "GET stands",
+      "n": 151,
+      "ok": 151,
+      "err": 0,
+      "p50": 139,
+      "p95": 150,
+      "p99": 520,
+      "max": 809,
+      "codes": "200:151"
+    },
+    {
+      "endpoint": "GET admin summary (inicio)",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 157,
+      "p95": 157,
+      "p99": 157,
+      "max": 157,
+      "codes": "200:1"
+    },
+    {
+      "endpoint": "BORDE PIN admin incorrecto",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 138,
+      "p95": 138,
+      "p99": 138,
+      "max": 138,
+      "codes": "401:1"
+    },
+    {
+      "endpoint": "BORDE PIN staff incorrecto",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 541,
+      "p95": 541,
+      "p99": 541,
+      "max": 541,
+      "codes": "401:1"
+    },
+    {
+      "endpoint": "BORDE login código inexistente",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 134,
+      "p95": 134,
+      "p99": 134,
+      "max": 134,
+      "codes": "404:1"
+    },
+    {
+      "endpoint": "BORDE registro nuevo",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 140,
+      "p95": 140,
+      "p99": 140,
+      "max": 140,
+      "codes": "201:1"
+    },
+    {
+      "endpoint": "BORDE registro código repetido",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 142,
+      "p95": 142,
+      "p99": 142,
+      "max": 142,
+      "codes": "200:1"
+    },
+    {
+      "endpoint": "BORDE stand inexistente",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 139,
+      "p95": 139,
+      "p99": 139,
+      "max": 139,
+      "codes": "404:1"
+    },
+    {
+      "endpoint": "BORDE token inválido",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 140,
+      "p95": 140,
+      "p99": 140,
+      "max": 140,
+      "codes": "401:1"
+    },
+    {
+      "endpoint": "GET admin summary (proyección)",
+      "n": 12,
+      "ok": 12,
+      "err": 0,
+      "p50": 173,
+      "p95": 238,
+      "p99": 238,
+      "max": 238,
+      "codes": "200:12"
+    },
+    {
+      "endpoint": "PÁGINA html",
+      "n": 598,
+      "ok": 598,
+      "err": 0,
+      "p50": 144,
+      "p95": 154,
+      "p99": 507,
+      "max": 528,
+      "codes": "200:598"
+    },
+    {
+      "endpoint": "PÁGINA js/css",
+      "n": 1794,
+      "ok": 1791,
+      "err": 3,
+      "p50": 139,
+      "p95": 167,
+      "p99": 528,
+      "max": 558,
+      "codes": "200:1791 neterr:3"
+    },
+    {
+      "endpoint": "POST register",
+      "n": 150,
+      "ok": 150,
+      "err": 0,
+      "p50": 137,
+      "p95": 145,
+      "p99": 157,
+      "max": 165,
+      "codes": "201:150"
+    },
+    {
+      "endpoint": "GET me",
+      "n": 606,
+      "ok": 606,
+      "err": 0,
+      "p50": 138,
+      "p95": 146,
+      "p99": 175,
+      "max": 535,
+      "codes": "200:606"
+    },
+    {
+      "endpoint": "POST login",
+      "n": 11,
+      "ok": 11,
+      "err": 0,
+      "p50": 141,
+      "p95": 152,
+      "p99": 152,
+      "max": 152,
+      "codes": "200:11"
+    },
+    {
+      "endpoint": "POST vote",
+      "n": 1500,
+      "ok": 1499,
+      "err": 1,
+      "p50": 143,
+      "p95": 156,
+      "p99": 522,
+      "max": 557,
+      "codes": "200:1499 neterr:1"
+    },
+    {
+      "endpoint": "GET admin summary (panel)",
+      "n": 12,
+      "ok": 12,
+      "err": 0,
+      "p50": 146,
+      "p95": 532,
+      "p99": 532,
+      "max": 532,
+      "codes": "200:12"
+    },
+    {
+      "endpoint": "GET staff pendientes",
+      "n": 40,
+      "ok": 40,
+      "err": 0,
+      "p50": 146,
+      "p95": 548,
+      "p99": 591,
+      "max": 591,
+      "codes": "200:40"
+    },
+    {
+      "endpoint": "GET me (vale abierto)",
+      "n": 1430,
+      "ok": 1428,
+      "err": 2,
+      "p50": 144,
+      "p95": 151,
+      "p99": 523,
+      "max": 556,
+      "codes": "200:1428 neterr:2"
+    },
+    {
+      "endpoint": "GET admin export CSV",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 145,
+      "p95": 145,
+      "p99": 145,
+      "max": 145,
+      "codes": "200:1"
+    },
+    {
+      "endpoint": "GET staff buscar",
+      "n": 136,
+      "ok": 136,
+      "err": 0,
+      "p50": 145,
+      "p95": 178,
+      "p99": 334,
+      "max": 521,
+      "codes": "200:136"
+    },
+    {
+      "endpoint": "POST staff canje",
+      "n": 149,
+      "ok": 149,
+      "err": 0,
+      "p50": 142,
+      "p95": 154,
+      "p99": 530,
+      "max": 544,
+      "codes": "200:136 409:13"
+    },
+    {
+      "endpoint": "POST staff doble canje (debe 409)",
+      "n": 15,
+      "ok": 15,
+      "err": 0,
+      "p50": 137,
+      "p95": 139,
+      "p99": 139,
+      "max": 139,
+      "codes": "409:15"
+    },
+    {
+      "endpoint": "POST admin cerrar votación",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 515,
+      "p95": 515,
+      "p99": 515,
+      "max": 515,
+      "codes": "200:1"
+    },
+    {
+      "endpoint": "BORDE voto con votación cerrada",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 131,
+      "p95": 131,
+      "p99": 131,
+      "max": 131,
+      "codes": "403:1"
+    },
+    {
+      "endpoint": "GET admin summary (cierre)",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 168,
+      "p95": 168,
+      "p99": 168,
+      "max": 168,
+      "codes": "200:1"
+    },
+    {
+      "endpoint": "POST admin reabrir votación",
+      "n": 1,
+      "ok": 1,
+      "err": 0,
+      "p50": 136,
+      "p95": 136,
+      "p99": 136,
+      "max": 136,
+      "codes": "200:1"
+    }
+  ]
+}
