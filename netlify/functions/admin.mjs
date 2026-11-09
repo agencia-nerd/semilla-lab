@@ -1,4 +1,4 @@
-import { store, json, fail, readBody, getStands, getConfig, cleanName, maskPhone, prizeStatus, prizesFor, loadAll, cached, invalidate, PRIZES } from "./_lib.mjs";
+import { store, json, fail, readBody, getStands, getConfig, cleanName, maskPhone, prizeStatus, prizesFor, loadAll, cached, invalidate, PRIZES, TICKET_MAX } from "./_lib.mjs";
 
 // Meta: votar los stands necesarios para el último premio (10 → hot dog).
 const GOAL = Math.max(...PRIZES.map((p) => p.at));
@@ -8,11 +8,12 @@ const PIN = () => process.env.ADMIN_PIN || (process.env.NETLIFY_DEV ? "semilla20
 const MIN_VOTES_TO_RANK = 3;
 
 async function snapshot(s) {
-  const [stands, config, users, votes, claims, raffle] = await Promise.all([
-    getStands(s), getConfig(s), loadAll(s, "users/"), loadAll(s, "votes/"), loadAll(s, "claims/"),
+  const [stands, config, users, votes, claims, tickets, raffle] = await Promise.all([
+    getStands(s), getConfig(s), loadAll(s, "users/"), loadAll(s, "votes/"), loadAll(s, "claims/"), loadAll(s, "tickets/"),
     s.get("raffle", { type: "json" }),
   ]);
   const claimsByPhone = Object.fromEntries(claims.map((c) => [c.key, c.value]));
+  const ticketsByPhone = Object.fromEntries(tickets.map((t) => [t.key, t.value]));
   const usersByPhone = Object.fromEntries(users.map((u) => [u.key, u.value]));
   const agg = Object.fromEntries(stands.map((x) => [x.id, { total: 0, count: 0, dist: [0, 0, 0, 0, 0], tags: {}, comments: [] }]));
   const voters = [];
@@ -26,21 +27,30 @@ async function snapshot(s) {
     if (entries.length) voters.push({ phone, count: entries.length, votes: value });
   }
   for (const a of Object.values(agg)) a.comments.sort((x, y) => String(y.at).localeCompare(String(x.at)));
+  // Favorito del público. Compiten los stands con al menos MIN_VOTES_TO_RANK votos y se ordenan por:
+  // 1) mayor promedio · 2) más votos totales · 3) más votos con nota 5 · 4) más votos con nota 4.
+  // Si aun así quedan iguales en todo, comparten el puesto (tie: true).
+  const key = (r) => [r.count >= MIN_VOTES_TO_RANK ? 1 : 0, Math.round(r.avg * 1e6), r.count, r.dist[4], r.dist[3]];
+  const cmp = (a, b) => { const x = key(a), y = key(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] - x[i]; return 0; };
   const ranking = stands
-    .map((x) => ({ ...x, ...agg[x.id], avg: agg[x.id].count ? agg[x.id].total / agg[x.id].count : 0 }))
-    .sort((a, b) =>
-      (b.count >= MIN_VOTES_TO_RANK) - (a.count >= MIN_VOTES_TO_RANK) || b.avg - a.avg || b.count - a.count);
+    .map((x) => ({ ...x, ...agg[x.id], avg: agg[x.id].count ? agg[x.id].total / agg[x.id].count : 0, fives: agg[x.id].dist[4] }))
+    .sort((a, b) => cmp(a, b) || a.name.localeCompare(b.name, "es"));
+  ranking.forEach((r, i) => {
+    const prev = ranking[i - 1];
+    r.pos = prev && cmp(prev, r) === 0 ? prev.pos : i + 1;
+    r.tie = r.count >= MIN_VOTES_TO_RANK && !!((prev && cmp(prev, r) === 0) || (ranking[i + 1] && cmp(ranking[i + 1], r) === 0));
+  });
   const eligible = voters
     .filter((v) => v.count >= GOAL && usersByPhone[v.phone])
     .map((v) => ({ phone: v.phone, name: usersByPhone[v.phone].name, count: v.count }));
   // Premios: desbloqueados / canjeados por nivel.
   const countBy = Object.fromEntries(voters.map((v) => [v.phone, v.count]));
-  const prizeStats = prizesFor(config).map((p) => ({ ...p, unlocked: 0, claimed: 0 }));
+  const prizeStats = prizesFor(config).map((p) => ({ ...p, unlocked: 0, claimed: 0, tickets: 0, ticketMax: TICKET_MAX }));
   const prizesByPhone = {};
   for (const phone of Object.keys(usersByPhone)) {
-    const st = prizeStatus(countBy[phone] || 0, claimsByPhone[phone] || {}, config);
+    const st = prizeStatus(countBy[phone] || 0, claimsByPhone[phone] || {}, config, ticketsByPhone[phone] || {});
     prizesByPhone[phone] = st;
-    st.forEach((z, i) => { if (z.unlocked) prizeStats[i].unlocked++; if (z.claimed) prizeStats[i].claimed++; });
+    st.forEach((z, i) => { if (z.unlocked) prizeStats[i].unlocked++; if (z.claimed) prizeStats[i].claimed++; if (z.ticket) prizeStats[i].tickets++; });
   }
   return { stands, config, usersByPhone, voters, ranking, eligible, prizeStats, prizesByPhone, raffle: raffle || { winners: [] } };
 }
@@ -80,14 +90,14 @@ export default async (req) => {
     const snap = await snapshot(s);
     const ids = snap.stands.map((x) => x.id);
     const prizeList = prizesFor(snap.config);
-    const header = ["nombre", "celular", "registrado", "stands_votados", `completo_${GOAL}`, ...prizeList.map((p) => `premio_${p.key}`), ...snap.stands.map((x) => x.name), ...snap.stands.map((x) => `${x.name} · comentario`)];
+    const header = ["nombre", "codigo_trabajador", "celular", "registrado", "stands_votados", `completo_${GOAL}`, ...prizeList.map((p) => `premio_${p.key}`), ...prizeList.map((p) => `numero_${p.key}`), ...snap.stands.map((x) => x.name), ...snap.stands.map((x) => `${x.name} · comentario`)];
     const votesBy = Object.fromEntries(snap.voters.map((v) => [v.phone, v.votes]));
     const rows = Object.values(snap.usersByPhone).map((u) => {
       const v = votesBy[u.phone] || {};
       const n = ids.filter((id) => v[id]).length;
       const pz = snap.prizesByPhone[u.phone] || [];
       const pcell = (z) => (z.claimed ? `canjeado ${z.claimedAt}` : z.unlocked ? "pendiente" : "");
-      return [u.name, u.phone, u.createdAt, n, n >= GOAL ? "si" : "no", ...pz.map(pcell), ...ids.map((id) => v[id]?.stars ?? ""), ...ids.map((id) => v[id]?.comment ?? "")];
+      return [u.name, u.code || "", u.phone !== u.code ? u.phone : "", u.createdAt, n, n >= GOAL ? "si" : "no", ...pz.map(pcell), ...pz.map((z) => z.ticket ?? ""), ...ids.map((id) => v[id]?.stars ?? ""), ...ids.map((id) => v[id]?.comment ?? "")];
     });
     const csv = "﻿" + [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
     return new Response(csv, {
@@ -105,7 +115,8 @@ export default async (req) => {
       let id = String(x.id || "").replace(/[^a-z0-9-]/gi, "").slice(0, 20) || `s${Date.now().toString(36)}${i}`;
       while (seen.has(id)) id += "x";
       seen.add(id);
-      return { id, name: cleanName(x.name) || `Stand ${i + 1}`, team: cleanName(x.team), pitch: String(x.pitch || "").trim().slice(0, 200) };
+      const logo = /^\/assets\/stands\/[\w.-]+$/.test(x.logo || "") ? x.logo : "";
+      return { id, name: cleanName(x.name) || `Stand ${i + 1}`, team: cleanName(x.team), pitch: String(x.pitch || "").trim().slice(0, 200), ...(logo && { logo }) };
     });
     await s.setJSON("stands", stands);
     await invalidate(s, "summary", "roster");
@@ -141,9 +152,15 @@ export default async (req) => {
   }
 
   if (action === "deleteUser") {
-    const phone = String(body.phone || "").replace(/\D/g, "");
-    if (!/^9\d{8}$/.test(phone)) return fail("Celular inválido");
-    await Promise.all([s.delete(`users/${phone}`), s.delete(`votes/${phone}`), s.delete(`claims/${phone}`)]);
+    const phone = String(body.phone || body.code || "").toUpperCase().replace(/[^A-Z0-9-]/g, "");
+    if (!/^[A-Z0-9-]{3,20}$/.test(phone)) return fail("Participante inválido");
+    // Libera también sus números de canje para que puedan volver a asignarse.
+    const [tickets, u] = await Promise.all([s.get(`tickets/${phone}`, { type: "json" }).then((t) => t || {}), s.get(`users/${phone}`, { type: "json" })]);
+    await Promise.all([
+      s.delete(`users/${phone}`), s.delete(`votes/${phone}`), s.delete(`claims/${phone}`), s.delete(`tickets/${phone}`),
+      ...Object.entries(tickets).map(([k, n]) => s.delete(`ticket/${k}/${n}`)),
+      ...(u?.code ? [s.delete(`codes/${u.code}`)] : []),
+    ]);
     await invalidate(s, "summary", "roster");
     return json({ deleted: phone });
   }

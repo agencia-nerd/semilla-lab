@@ -1,4 +1,4 @@
-// Prueba de carga de Semilla Lab: simula un evento con N personas a la vez.
+// Prueba de carga de SemillaLab: simula un evento con N personas a la vez.
 //
 //   BASE=https://mi-sitio USERS=300 ADMIN_PIN=xxx STAFF_PIN=yyy node tools/loadtest.mjs
 //

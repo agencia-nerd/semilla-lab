@@ -1,8 +1,8 @@
-# Semilla Lab · Guía técnica
+# SemillaLab · Guía técnica
 
-Votación del público por stands para Semilla Lab (Camposol). Para el uso funcional ver **[MANUAL.md](MANUAL.md)**.
+Votación del público por stands para SemillaLab (Camposol). Para el uso funcional ver **[MANUAL.md](MANUAL.md)**.
 
-- Producción actual: https://alonsom22.sg-host.com (SiteGround, proyecto Node.js con `npm start`; datos en `STORAGE_DIR`). La versión anterior en Netlify (`semilla-lab-camposol`) queda fuera de uso.
+- Producción actual: https://semilla-lab-camposol.netlify.app (Netlify, sitio `semilla-lab-camposol`)
 - Sin framework ni build: HTML + CSS + JavaScript (ES modules) en el front; funciones Node en el back.
 - Node **18 o superior**.
 
@@ -16,7 +16,7 @@ public/                 Front (se sirve tal cual)
   palette.js            Color por stand + opciones de "lo más fuerte" (compartido con el panel)
   admin/                Panel de administración (index.html + admin.js)
   staff/                Canje de premios para el staff de los puestos (index.html + staff.js)
-  assets/               Sellos Semilla Lab y Camposol, favicon, fonts/ (Poppins) y prizes/ (fotos de los premios)
+  assets/               Sellos SemillaLab y Camposol, favicon, fonts/ (Poppins) y prizes/ (fotos de los premios)
 netlify/functions/      Back (API). Cada archivo exporta un handler (Request → Response) y su ruta
   _lib.mjs              Utilidades, validaciones, stands por defecto, elección de almacenamiento
   _filestore.mjs        Almacenamiento en archivos JSON (modo servidor propio)
@@ -28,7 +28,7 @@ netlify.toml            Config de Netlify
 docs/                   Afiche, PRUEBA-DE-CARGA.md (300 personas) y marca/ (logos originales)
 ```
 
-## Línea gráfica (Semilla Lab 2026)
+## Línea gráfica (SemillaLab 2026)
 
 Alineada con las piezas de campaña ("Trabajamos el campo para mejorar vidas"): banner, afiches, categorías y protector de pantalla.
 
@@ -37,7 +37,7 @@ Alineada con las piezas de campaña ("Trabajamos el campo para mejorar vidas"): 
 | Petróleo `--teal` | `#027D78` | Barra superior, portada, títulos |
 | Verde `--green` / `--green-dark` | `#1CAF58` / `#128A43` | Colinas / botones (el oscuro cumple contraste AA con blanco) |
 | Verde Camposol `--cs-green` | `#62A70F` | Colinas, sello Camposol |
-| Lima `--cs-lime` | `#E6F079` | Sello Semilla Lab, acentos |
+| Lima `--cs-lime` | `#E6F079` | Sello SemillaLab, acentos |
 | Crema `--cream` / `--cream-soft` | `#FCFAB5` / `#FFFDE8` | Titulares sobre petróleo / fondo general |
 | Menta `--mint` | `#C6EADE` | Fondos suaves |
 | Naranja `--orange` | `#FC843C` | Acento de acción |
@@ -45,6 +45,7 @@ Alineada con las piezas de campaña ("Trabajamos el campo para mejorar vidas"): 
 - **Tipografía:** Poppins (400–800), servida desde `public/assets/fonts/`.
 - **Logos:** `public/assets/semilla-bulb.webp` (foquito del sello oficial sobre fondo lima, sin texto; barra superior, franja final y entrada por QR), `camposol-white.webp` (logo horizontal blanco, sobre fondos oscuros) y `camposol-badge.webp` (sello, sobre fondos claros como la proyección). `semilla-badge.webp` es el sello completo. Originales en `docs/marca/`.
 - **Elementos:** colinas verdes (`hills()` en `app.js`), mosaicos de esquina y brote (símbolos SVG en `index.html`), franja final con ambos sellos.
+- **Logos de los stands:** `public/assets/stands/<id>.webp` (640 px, fondo blanco), referenciados en el campo `logo` de cada stand. Para cambiar uno, reemplazar el archivo con **otro nombre** (caché de 7 días) y actualizar `logo`.
 - **Colores por stand y por premio:** `public/palette.js`. Cada color tiene `hex` (fondo), `fg` (texto sobre ese fondo) e `ink` (versión legible sobre blanco). Todas las combinaciones tienen contraste ≥ 4.4:1.
 - **Caché:** imágenes y fuentes se guardan 7 días en el celular. Si se reemplaza una imagen, **usar un nombre de archivo nuevo**.
 
@@ -93,12 +94,12 @@ location / {
 
 ## API
 
-Todas responden JSON. Autenticación del participante: header `Authorization: Bearer <celular>:<token>` (el token llega al registrarse o al entrar).
+Todas responden JSON. Autenticación del participante: header `Authorization: Bearer <id>:<token>` (id = código de trabajador; en registros antiguos, el celular) (el token llega al registrarse o al entrar).
 
 | Método | Ruta | Auth | Cuerpo / parámetros | Respuesta |
 |---|---|---|---|---|
-| POST | `/api/register` | — | `{name, phone, consent:true}` | `{user:{name,phone,token}, existing}` |
-| POST | `/api/login` | — | `{phone}` | `{user}` · 404 si no existe |
+| POST | `/api/register` | — | `{name, code, consent:true}` | `{user:{name,phone,token}, existing}` |
+| POST | `/api/login` | — | `{code}` | `{user}` · 404 si no existe |
 | GET | `/api/stands` | — | — | `{stands, config, prizes}` (niveles de premios) |
 | GET | `/api/me` | participante | — | `{user, votes, count, config, prizes}` (estado de cada premio) |
 | POST | `/api/vote` | participante | `{standId, stars:1-5, tags?:[≤2], comment?:≤280}` | `{votes, count, minForRaffle, prizes}` |
@@ -123,9 +124,12 @@ Caché: el resumen del panel y el padrón del staff se calculan como máximo cad
 
 | Clave | Contenido |
 |---|---|
-| `users/<celular>` | `{name, phone, token, createdAt}` |
+| `users/<celular>` | `{name, code, phone, token, createdAt}` |
+| `codes/<código>` | `{phone, at}` reserva del código de trabajador (uno por celular) |
 | `votes/<celular>` | `{ <standId>: {stars, tags, comment?, at} }` (un documento por persona: sin choques de escritura) |
 | `claims/<celular>` | `{ <premio>: {at, by} }` premios entregados (`by` = staff o admin) |
+| `tickets/<celular>` | `{ <premio>: número }` números de canje de la persona (1–500, se asignan al desbloquear) |
+| `ticket/<premio>/<n>` | `{phone, at}` dueño de cada número; se crea con `onlyIfNew` para que nunca se repita |
 | `stands` | lista de stands `{id, name, team, pitch}`; `team` es la categoría (si no existe se usan los 10 finalistas de `_lib.mjs`) |
 | `config` | `{votingOpen, minForRaffle}` |
 | `raffle` | `{winners:[…]}` |
@@ -133,7 +137,7 @@ Caché: el resumen del panel y el padrón del staff se calculan como máximo cad
 **Borrar datos de prueba antes del evento**
 - Uno por uno: `POST /api/admin?action=deleteUser` con `{phone}`.
 - Todo (servidor propio): detener el servidor y vaciar `data/`, dejando `stands.json` si ya se cargaron los reales.
-- Todo (Netlify): `npx netlify-cli blobs:list semilla` y `blobs:delete semilla <clave>` para las claves `users/`, `votes/` y `claims/`.
+- Todo (Netlify): `npx netlify-cli blobs:list semilla` y `blobs:delete semilla <clave>` para las claves `users/`, `votes/`, `claims/`, `tickets/` y `ticket/` (estas dos liberan los números de canje).
 
 **Premios.** Los niveles están en `PRIZES` dentro de `netlify/functions/_lib.mjs` (3 canchita · 5 gaseosa · 8 helado · 10 hot dog; el último nivel es la meta "completaron 10", igual al número de stands). Para cambiar un nivel o agregar un premio, editar `PRIZES` y agregar su color e imagen en `PRIZE_STYLE` (`public/palette.js`) y `public/assets/prizes/`.
 
@@ -143,7 +147,7 @@ En producción (Netlify) y en el servidor propio: portada, entrada por QR, regis
 
 ## Mejoras sugeridas para optimizar
 
-1. **Ingreso solo con celular** (pedido de negocio): quien sepa el celular de otro puede entrar como él. Opciones: código por SMS/WhatsApp, o pedir además DNI/código de colaborador.
+1. **Ingreso solo con código de trabajador** (pedido del cliente): el código es la identidad (`users/<código>`, reservado en `codes/<código>` con `onlyIfNew`). Quien sepa el código de otro puede entrar como él; para endurecerlo, cargar el padrón de códigos válidos o pedir un segundo dato.
 2. **Tokens sin vencimiento**: agregar expiración o rotación.
 3. **Ranking**: se recalcula como máximo cada 15 s leyendo todos los votos. Probado con 300 personas; para miles, usar una base de datos (Postgres/SQLite) con agregados.
 4. **Límite de intentos en memoria**: se reinicia por instancia. En producción mover a Redis o al proxy (Nginx `limit_req`, cuidando que el WiFi del evento comparte IP).

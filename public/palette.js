@@ -1,4 +1,4 @@
-// Identidad por stand dentro de la paleta de campaña Semilla Lab 2026.
+// Identidad por stand dentro de la paleta de campaña SemillaLab 2026.
 // Los stands de una misma categoría (campo `team`) comparten color; sin categoría, se asigna por posición.
 export const STAND_COLORS = [
   { name: "Petróleo", ink: "#027D78", hex: "#027D78", fg: "#FFFFFF" },
@@ -12,7 +12,11 @@ export const STAND_COLORS = [
   { name: "Coral", ink: "#C2412F", hex: "#F2705E", fg: "#12302C" },
   { name: "Tierra", ink: "#8A5A2B", hex: "#8A5A2B", fg: "#FFFFFF" },
   { name: "Morado", ink: "#6B3FA0", hex: "#7B4BB7", fg: "#FFFFFF" },
+  { name: "Crema", ink: "#027D78", hex: "#FCFAB5", fg: "#027D78" },
 ];
+
+// Color fijo por número de categoría (como las piezas de finalistas): 1 verde, 2 petróleo, 3 crema.
+const BY_CATEGORY = { 1: STAND_COLORS[1], 2: STAND_COLORS[0], 3: STAND_COLORS[11] };
 
 // Colores por categoría, en el orden en que aparecen (como en la gráfica de finalistas: 1 naranja, 2A verde, 2B bosque, 3 morado).
 const CATEGORY_COLORS = [2, 1, 7, 10, 0, 5, 6, 8, 4, 9, 3].map((k) => STAND_COLORS[k]);
@@ -23,6 +27,8 @@ export function setStands(stands = []) {
   byIndex = stands.map((s) => {
     const c = (s.team || "").trim();
     if (!c) return null;
+    const num = c.match(/^cat(?:egor[ií]a)?\.?\s*(\d+)/i)?.[1];
+    if (BY_CATEGORY[num]) return BY_CATEGORY[num];
     if (!cats.includes(c)) cats.push(c);
     return CATEGORY_COLORS[cats.indexOf(c) % CATEGORY_COLORS.length];
   });

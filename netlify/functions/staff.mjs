@@ -1,7 +1,7 @@
 // Canje de premios para el staff de los puestos.
 // Acceso: header x-staff-pin = STAFF_PIN (staff) o ADMIN_PIN (admin; además puede deshacer).
 import {
-  store, json, fail, readBody, getStands, getConfig, voteCount, prizeStatus, prizesFor, maskPhone, PHONE_RE, loadAll, cached, patchCached,
+  store, json, fail, readBody, getStands, getConfig, voteCount, prizeStatus, prizesFor, maskPhone, TICKET_MAX, ID_RE, loadAll, cached, patchCached,
 } from "./_lib.mjs";
 
 const pins = () => ({
@@ -25,23 +25,25 @@ const norm = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toL
 // de una búsqueda se vuelven a leer frescas antes de mostrarse.
 function roster(s, stands) {
   return cached(s, "roster", 15_000, async () => {
-    const [users, votes, claims] = await Promise.all([loadAll(s, "users/"), loadAll(s, "votes/"), loadAll(s, "claims/")]);
+    const [users, votes, claims, tickets] = await Promise.all([loadAll(s, "users/"), loadAll(s, "votes/"), loadAll(s, "claims/"), loadAll(s, "tickets/")]);
     const votesBy = Object.fromEntries(votes.map((v) => [v.key, v.value]));
     const claimsBy = Object.fromEntries(claims.map((c) => [c.key, c.value]));
+    const ticketsBy = Object.fromEntries(tickets.map((t) => [t.key, t.value]));
     return users.map(({ value: u }) => ({
-      name: u.name, phone: u.phone, n: norm(u.name),
-      count: voteCount(votesBy[u.phone] || {}, stands), claims: claimsBy[u.phone] || {},
+      name: u.name, phone: u.phone, n: norm(u.name), code: norm(u.code), codeRaw: u.code || "",
+      count: voteCount(votesBy[u.phone] || {}, stands), claims: claimsBy[u.phone] || {}, tickets: ticketsBy[u.phone] || {},
     }));
   });
 }
 
 async function person(s, u, stands, config) {
-  const [votes, claims] = await Promise.all([
+  const [votes, claims, tickets] = await Promise.all([
     s.get(`votes/${u.phone}`, { type: "json" }),
     s.get(`claims/${u.phone}`, { type: "json" }),
+    s.get(`tickets/${u.phone}`, { type: "json" }),
   ]);
   const count = voteCount(votes || {}, stands);
-  return { name: u.name, phone: u.phone, phoneMasked: maskPhone(u.phone), count, prizes: prizeStatus(count, claims || {}, config) };
+  return { name: u.name, phone: u.phone, phoneMasked: maskPhone(u.phone, u.codeRaw ?? u.code), count, prizes: prizeStatus(count, claims || {}, config, tickets || {}) };
 }
 
 export default async (req) => {
@@ -62,7 +64,16 @@ export default async (req) => {
     const digits = q.replace(/\D/g, "");
     let matches;
     if (!q) matches = users;
-    else matches = users.filter((u) => (digits.length >= 3 && u.phone.includes(digits)) || q.split(" ").every((w) => u.n.includes(w)));
+    else matches = users.filter((u) => (digits.length >= 3 && u.phone.includes(digits)) || q.split(" ").every((w) => u.n.includes(w)) || (q.length >= 3 && u.code === q));
+    // Número de canje (1–500): se busca directo en las claves ticket/<premio>/<n>, siempre fresco.
+    const tn = Number(digits);
+    if (digits && digits === q && tn >= 1 && tn <= TICKET_MAX) {
+      const keys = prize ? [prize] : prizesFor(config).map((p) => p.key);
+      const owners = (await Promise.all(keys.map((k) => s.get(`ticket/${k}/${tn}`, { type: "json" })))).filter(Boolean).map((t) => t.phone);
+      const byPhone = new Map(users.map((u) => [u.phone, u]));
+      const found = await Promise.all(owners.map(async (ph) => byPhone.get(ph) || s.get(`users/${ph}`, { type: "json" })));
+      matches = [...new Map([...found.filter(Boolean), ...matches].map((u) => [u.phone, u])).values()];
+    }
 
     // Con búsqueda: hasta 30 coincidencias, leídas frescas.
     // Sin búsqueda: pendientes según el padrón (máx. 15 s de antigüedad; el canje se valida igual en el servidor).
@@ -71,7 +82,7 @@ export default async (req) => {
       result = await Promise.all(matches.slice(0, 30).map((u) => person(s, u, stands, config)));
     } else {
       result = matches
-        .map((u) => ({ name: u.name, phone: u.phone, phoneMasked: maskPhone(u.phone), count: u.count, prizes: prizeStatus(u.count, u.claims, config) }))
+        .map((u) => ({ name: u.name, phone: u.phone, phoneMasked: maskPhone(u.phone, u.codeRaw), count: u.count, prizes: prizeStatus(u.count, u.claims, config, u.tickets) }))
         .filter((p) => p.prizes.some((z) => z.unlocked && !z.claimed && (!prize || z.key === prize)));
     }
     result.sort((a, b) => a.name.localeCompare(b.name, "es"));
@@ -83,9 +94,9 @@ export default async (req) => {
 
   if (req.method !== "POST") return fail("Acción no válida", 400);
   const body = await readBody(req);
-  const phone = String(body.phone || body.id || "").replace(/\D/g, "");
+  const phone = String(body.phone || body.id || "").toUpperCase().replace(/[^A-Z0-9-]/g, "");
   const key = String(body.prize || "");
-  if (!PHONE_RE.test(phone)) return fail("Participante inválido");
+  if (!ID_RE.test(phone)) return fail("Participante inválido");
   if (!prizesFor(config).some((p) => p.key === key)) return fail("Premio inválido");
   const user = await s.get(`users/${phone}`, { type: "json" });
   if (!user) return fail("Participante no encontrado", 404);

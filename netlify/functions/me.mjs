@@ -1,4 +1,4 @@
-import { store, json, fail, authUser, getConfig, getStands, voteCount, prizeStatus } from "./_lib.mjs";
+import { store, json, fail, authUser, getConfig, getStands, voteCount, prizeStatus, ensureTickets } from "./_lib.mjs";
 
 export default async (req) => {
   const s = store();
@@ -12,7 +12,8 @@ export default async (req) => {
   ]);
   const v = votes || {};
   const count = voteCount(v, stands);
-  return json({ user: { name: user.name, phone: user.phone }, votes: v, count, config, prizes: prizeStatus(count, claims || {}, config) });
+  const tickets = await ensureTickets(s, user.phone, count, config);
+  return json({ user: { name: user.name, phone: user.phone }, votes: v, count, config, prizes: prizeStatus(count, claims || {}, config, tickets) });
 };
 
 export const config = { path: "/api/me" };

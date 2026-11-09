@@ -1,4 +1,4 @@
-// Panel de administración Semilla Lab v2
+// Panel de administración SemillaLab v2
 import { accentStyle, colorAt, setStands, TAGS, prizeStyle } from "/palette.js";
 
 const $root = document.getElementById("admin");
@@ -46,7 +46,7 @@ function renderLogin(err = "") {
 async function refresh() { st.data = await api("summary"); setStands(st.data.stands); }
 const standIdx = (id) => st.data.stands.findIndex((s) => s.id === id);
 
-const TABS = [["resumen", "Resultados"], ["stands", "Stands"], ["qr", "Códigos QR"]];
+const TABS = [["resumen", "Resultados"], ["stands", "Stands"], ["qr", "Códigos QR"], ["hojas", "Hojas de canje"]];
 
 function render() {
   $root.innerHTML = `
@@ -56,7 +56,7 @@ function render() {
     </div>`;
   $root.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => { st.tab = b.dataset.t; render(); }));
   clearInterval(st.poll);
-  ({ resumen: tabResumen, stands: tabStands, qr: tabQr })[st.tab]();
+  ({ resumen: tabResumen, stands: tabStands, qr: tabQr, hojas: tabHojas })[st.tab]();
 }
 
 function topTags(tags = {}) {
@@ -69,8 +69,8 @@ function rankList(ranking, minVotes, showComments = false) {
     const ranked = r.count >= minVotes;
     const si = standIdx(r.id);
     return `<li class="${ranked ? "" : "muted"}" style="${accentStyle(si)};--i:${i}">
-      <span class="n">${pad(si + 1)}</span>
-      <div><h3>${esc(r.name)}</h3><div class="meta tag">#${i + 1} · ${esc(r.team)} · ${r.count} voto${r.count === 1 ? "" : "s"}${ranked ? "" : ` · mín. ${minVotes}`}</div>
+      <span class="n">${r.logo ? `<img src="${esc(r.logo)}" alt="">` : ""}<em>${pad(si + 1)}</em></span>
+      <div><h3>${esc(r.name)}</h3><div class="meta tag">#${r.pos || i + 1}${r.tie ? " · empate" : ""} · ${esc(r.team)} · ${r.count} voto${r.count === 1 ? "" : "s"}${r.fives ? ` · ${r.fives}× nota 5` : ""}${ranked ? "" : ` · mín. ${minVotes}`}</div>
         <div class="bar"><i style="width:${(r.avg / 5) * 100}%"></i></div>
         ${r.tags && Object.keys(r.tags).length ? `<div class="tags">${topTags(r.tags)}</div>` : ""}
         ${showComments && r.comments?.length ? `<details class="cmts"><summary class="tag">${r.comments.length} comentario${r.comments.length === 1 ? "" : "s"}</summary>
@@ -85,7 +85,7 @@ function prizesHtml(d) {
   return `<div class="sec tag"><span>Premios</span><span class="dim">Canjeados / desbloqueados</span></div>
     <div class="pz-stats">${d.prizeStats.map((p) => {
       const s = prizeStyle(p.key);
-      return `<div class="pz-stat" style="--acc:${s.hex}"><img src="${s.img}" alt=""><b>${p.claimed}<em>/${p.unlocked}</em></b><span class="tag">${esc(p.name)} · ${p.at} stands</span><span class="tag dim">${p.unlocked - p.claimed} pendientes</span></div>`;
+      return `<div class="pz-stat" style="--acc:${s.hex}"><img src="${s.img}" alt=""><b>${p.claimed}<em>/${p.unlocked}</em></b><span class="tag">${esc(p.name)} · ${p.at} stands</span>${p.ticketMax ? `<span class="tag dim">Números ${p.tickets}/${p.ticketMax}${p.tickets >= p.ticketMax * 0.9 ? " ⚠ casi agotados" : ""}</span>` : ""}<span class="tag dim">${p.unlocked - p.claimed} pendientes</span></div>`;
     }).join("")}</div>`;
 }
 
@@ -106,18 +106,21 @@ function tabResumen() {
       ${statsHtml(d)}
       ${prizesHtml(d)}
       <div class="toolbar">
-        <button class="btn sm ${d.config.votingOpen ? "line" : ""}" id="toggleVote">${d.config.votingOpen ? "Cerrar votación" : "Abrir votación"}</button>
+        <button class="btn sm ${d.config.votingOpen ? "" : "line"}" id="toggleVote">${d.config.votingOpen ? "Cierre de votación" : "Reabrir votación"}</button>
+        ${d.config.votingOpen ? "" : `<button class="btn sm" id="showWinner">Ver ganador</button>`}
         <button class="btn sm line" id="live">Proyectar</button>
         <button class="btn sm line" id="csv">Exportar CSV</button>
         <span class="tag dim">● ${d.config.votingOpen ? "Abierta" : "Cerrada"} · se actualiza cada 30 s</span>
       </div>
-      <div class="sec tag"><span>Ranking del público</span><span class="dim">Promedio · desempate por votos</span></div>
+      <div class="sec tag"><span>Favorito del público</span><span class="dim">Ranking en vivo</span></div>
+      <div class="rules tag">Reglas: compiten los stands con al menos ${d.minVotesToRank} votos. Gana el <b>mayor promedio</b>; si empatan, <b>más votos totales</b>; luego <b>más votos con nota 5</b>; luego <b>más votos con nota 4</b>. Si siguen iguales en todo, comparten el puesto.</div>
       ${d.ranking.length ? rankList(d.ranking, d.minVotesToRank, true) : `<p class="empty tag">Sin stands.</p>`}`;
     document.getElementById("toggleVote").addEventListener("click", async () => {
       const open = !st.data.config.votingOpen;
-      if (!confirm(open ? "¿Abrir la votación?" : "¿Cerrar la votación? Nadie podrá votar ni cambiar su voto.")) return;
+      if (!confirm(open ? "¿Reabrir la votación?" : "¿Cerrar la votación? Nadie podrá votar ni cambiar su voto.")) return;
       await api("config", { method: "POST", body: { votingOpen: open } });
       await refresh(); paint(); toast(open ? "Votación abierta" : "Votación cerrada");
+      if (!open) winnerModal(st.data);
     });
     document.getElementById("csv").addEventListener("click", async () => {
       const blob = await api("export");
@@ -125,9 +128,38 @@ function tabResumen() {
       a.click(); URL.revokeObjectURL(a.href);
     });
     document.getElementById("live").addEventListener("click", openLive);
+    document.getElementById("showWinner")?.addEventListener("click", async () => { await refresh(); winnerModal(st.data); });
   };
   paint();
   st.poll = setInterval(async () => { try { await refresh(); if (st.tab === "resumen" && !document.querySelector(".live")) paint(); } catch {} }, 30000);
+}
+
+// Al cerrar la votación: pantalla con el primer puesto del público (o los empatados en el primer puesto).
+function winnerModal(d) {
+  const ranked = (d.ranking || []).filter((r) => r.count >= d.minVotesToRank);
+  const top = ranked.filter((r) => r.pos === 1);
+  const el = document.createElement("div");
+  el.className = "winner";
+  const card = (r) => {
+    const si = standIdx(r.id);
+    return `<div class="w-card" style="${accentStyle(si)}">
+      ${r.logo ? `<img class="w-logo" src="${esc(r.logo)}" alt="Logo ${esc(r.name)}">` : ""}
+      <span class="w-num">Stand ${pad(si + 1)}</span>
+      <h2>${esc(r.name)}</h2>
+      <div class="tag">${esc(r.team)}</div>
+      <div class="w-stats"><b>${r.avg.toFixed(2)}</b><span>promedio</span><b>${r.count}</b><span>votos</span><b>${r.fives}</b><span>notas 5</span></div>
+    </div>`;
+  };
+  el.innerHTML = `<div class="w-box" role="dialog" aria-modal="true" aria-label="Favorito del público">
+      <div class="tag w-kick">Votación cerrada · SemillaLab 2026</div>
+      <h1>${top.length > 1 ? "Empate en el<br>primer puesto" : "Favorito<br>del público"}</h1>
+      ${top.length ? top.map(card).join("") : `<p class="tag">Ningún stand llegó al mínimo de ${d.minVotesToRank} votos.</p>`}
+      <button class="btn" id="wClose">Cerrar</button>
+    </div>`;
+  document.body.appendChild(el);
+  const close = () => el.remove();
+  el.querySelector("#wClose").addEventListener("click", close);
+  el.addEventListener("click", (e) => { if (e.target === el) close(); });
 }
 
 function openLive() {
@@ -194,6 +226,8 @@ function tabStands() {
   paint();
 }
 
+const QR_BASE = "https://semilla-lab-camposol.netlify.app";
+
 function qrSvg(text) {
   const qr = window.qrcode(0, "M");
   qr.addData(text); qr.make();
@@ -202,15 +236,20 @@ function qrSvg(text) {
 
 function tabQr() {
   const $t = document.getElementById("tab");
-  const base = location.origin;
+  // Los QR impresos apuntan a la URL oficial de Netlify, que redirige al servidor.
+  // Se fija aquí para que un QR generado desde otro dominio (p. ej. SiteGround) sea idéntico a los impresos.
+  const base = QR_BASE;
   $t.innerHTML = `
     <div class="toolbar no-print"><button class="btn sm" id="print">Imprimir QRs</button>
       <span class="tag dim">Cada QR → ${esc(base)}/?stand=… → entrada 3 s → votar</span></div>
+    <p class="dim no-print" style="margin:0 0 16px">⚠ Los QR ya están impresos. Estos siempre usan la URL oficial
+      (${esc(base.replace(/^https?:\/\//, ""))}), aunque abras el panel desde otro dominio.
+      Para reimprimir, usa preferentemente los archivos de <b>QR-SemillaLab-2026.zip</b>.</p>
     <div class="qr-web">
       <div class="qr" id="webQr">${qrSvg(base + "/")}</div>
       <div class="qr-web-txt">
         <span class="tag">QR de la web</span>
-        <h3>Semilla Lab</h3>
+        <h3>SemillaLab</h3>
         <a class="url" href="${esc(base)}/" target="_blank" rel="noopener">${esc(base.replace(/^https?:\/\//, ""))}</a>
         <p class="dim">Para el tótem de registro, afiches y pantallas: abre la app en la portada.</p>
         <button class="btn sm no-print" id="dlWeb">Descargar PNG</button>
@@ -242,6 +281,40 @@ function downloadQrPng(text, filename) {
     if (qr.isDark(r, k)) g.fillRect(Math.floor((k + margin) * cell), Math.floor((r + margin) * cell), Math.ceil(cell), Math.ceil(cell));
   const a = document.createElement("a");
   a.href = c.toDataURL("image/png"); a.download = filename; a.click();
+}
+
+// Hoja para cada puesto: los números del 1 al 500 en casillas para tachar al entregar.
+function tabHojas() {
+  const $t = document.getElementById("tab");
+  const prizes = st.data.prizeStats || [];
+  const max = prizes[0]?.ticketMax || 500;
+  const nums = Array.from({ length: max }, (_, i) => `<span>${i + 1}</span>`).join("");
+  $t.innerHTML = `
+    <div class="toolbar no-print">
+      <button class="btn sm" id="printAll">Imprimir las ${prizes.length}</button>
+      ${prizes.map((p) => `<button class="btn sm line" data-print="${p.key}">Solo ${esc(p.name)}</button>`).join("")}
+      <span class="tag dim">Una hoja A4 por puesto · casillas del 1 al ${max}</span>
+    </div>
+    <p class="tag dim no-print">Cada vale muestra un número al azar, distinto para cada premio. La señora busca ese número en su hoja, lo tacha y entrega. Si ya está tachado, ese vale ya se usó.</p>
+    ${prizes.map((p) => {
+      const s = prizeStyle(p.key);
+      return `<section class="sheet" data-sheet="${p.key}" style="--acc:${s.hex}">
+        <header class="sheet-h">
+          <img src="/assets/semilla-bulb.webp" alt="" width="44" height="44">
+          <div><b>Hoja de canje · ${esc(p.name)}</b><span>Busca el número del vale y <u>táchalo</u> al entregar. Si ya está tachado, no entregues.</span></div>
+          <img class="sheet-prize" src="${s.img}" alt="">
+        </header>
+        <div class="sheet-grid">${nums}</div>
+        <footer class="sheet-f">SemillaLab 2026 · Camposol · ${esc(p.name)} (nivel ${p.at} stands)</footer>
+      </section>`;
+    }).join("")}`;
+  const print = (key) => {
+    document.querySelectorAll(".sheet").forEach((el) => el.classList.toggle("skip", !!key && el.dataset.sheet !== key));
+    window.print();
+    document.querySelectorAll(".sheet.skip").forEach((el) => el.classList.remove("skip"));
+  };
+  document.getElementById("printAll").addEventListener("click", () => print(null));
+  $t.querySelectorAll("[data-print]").forEach((b) => b.addEventListener("click", () => print(b.dataset.print)));
 }
 
 (async () => {

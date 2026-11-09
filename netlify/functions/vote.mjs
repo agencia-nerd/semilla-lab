@@ -1,4 +1,4 @@
-import { store, json, fail, readBody, authUser, getStands, getConfig, limited, TAG_KEYS, voteCount, prizeStatus } from "./_lib.mjs";
+import { store, json, fail, readBody, authUser, getStands, getConfig, limited, TAG_KEYS, voteCount, prizeStatus, ensureTickets } from "./_lib.mjs";
 
 export default async (req) => {
   if (req.method !== "POST") return fail("Método no permitido", 405);
@@ -21,8 +21,11 @@ export default async (req) => {
   votes[standId] = { stars: n, tags: cleanTags, ...(cleanComment && { comment: cleanComment }), at: new Date().toISOString() };
   await s.setJSON(key, votes);
   const count = voteCount(votes, stands);
-  const claims = (await s.get(`claims/${user.phone}`, { type: "json" })) || {};
-  return json({ votes, count, minForRaffle: config.minForRaffle, prizes: prizeStatus(count, claims, config) });
+  const [claims, tickets] = await Promise.all([
+    s.get(`claims/${user.phone}`, { type: "json" }).then((c) => c || {}),
+    ensureTickets(s, user.phone, count, config),
+  ]);
+  return json({ votes, count, minForRaffle: config.minForRaffle, prizes: prizeStatus(count, claims, config, tickets) });
 };
 
 export const config = { path: "/api/vote" };

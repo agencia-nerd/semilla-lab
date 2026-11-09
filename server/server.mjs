@@ -6,7 +6,7 @@
 import http from "node:http";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = path.join(ROOT, "public");
@@ -21,7 +21,7 @@ const FN_DIR = path.join(ROOT, "netlify", "functions");
 const routes = new Map();
 for (const f of await fs.readdir(FN_DIR)) {
   if (!f.endsWith(".mjs") || f.startsWith("_")) continue;
-  const mod = await import(pathToFileURL(path.join(FN_DIR, f)).href);
+  const mod = await import(path.join(FN_DIR, f));
   if (mod.config?.path) routes.set(mod.config.path, mod.default);
 }
 
@@ -78,6 +78,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Semilla Lab en http://localhost:${PORT}  ·  datos en ${process.env.STORAGE_DIR}`);
+  console.log(`SemillaLab en http://localhost:${PORT}  ·  datos en ${process.env.STORAGE_DIR}`);
   console.log(`API: ${[...routes.keys()].join(", ")}`);
 });

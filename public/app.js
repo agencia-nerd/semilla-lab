@@ -1,4 +1,4 @@
-// Semilla Lab v2 · votación del público
+// SemillaLab v2 · votación del público
 import { colorAt, accentStyle, setStands, TAGS, prizeStyle } from "/palette.js";
 
 const $app = document.getElementById("app");
@@ -74,7 +74,7 @@ const hills = (top = "var(--teal)") => `
   </svg></div>`;
 const tiles = () => `<div class="tiles" aria-hidden="true"><svg><use href="#i-tile-x"/></svg><svg><use href="#i-tile-leaf"/></svg><span></span><svg><use href="#i-tile-flower"/></svg></div>`;
 const brandBand = () => `
-  <div class="brand-band"><img class="bb-bulb" src="/assets/semilla-bulb.webp" alt="Semilla Lab" width="48" height="48"><span>Trabajamos el campo<br>para mejorar vidas.</span><img class="bb-camposol" src="/assets/camposol-white.webp" alt="Camposol" width="95" height="16"></div>`;
+  <div class="brand-band"><img class="bb-bulb" src="/assets/semilla-bulb.webp" alt="SemillaLab" width="48" height="48"><span>Trabajamos el campo<br>para mejorar vidas.</span><img class="bb-camposol" src="/assets/camposol-white.webp" alt="Camposol" width="95" height="16"></div>`;
 
 const phrase = (reveal = true) => `
   <div class="phrase ${reveal ? "reveal" : ""}" aria-label="Cultiva tu idea. Cosecha innovación.">
@@ -112,7 +112,7 @@ async function loadMe() {
 }
 
 function setSession(user) {
-  state.session = { phone: user.phone, token: user.token, name: user.name };
+  state.session = { phone: user.phone, code: user.code, token: user.token, name: user.name };
   save(LS_SESSION, state.session);
 }
 function logout(redirect = true) {
@@ -178,11 +178,11 @@ async function showSplash(standId) {
   el.setAttribute("style", accentStyle(Math.max(0, i)));
   el.innerHTML = `
     ${tiles()}
-    <div class="sp-head"><img class="sp-bulb" src="/assets/semilla-bulb.webp" alt="Semilla Lab" width="54" height="54"><img class="sp-camposol" src="/assets/camposol-white.webp" alt="Camposol" width="154" height="26" style="margin-right:72px"></div>
+    <div class="sp-head"><img class="sp-bulb" src="/assets/semilla-bulb.webp" alt="SemillaLab" width="54" height="54"><img class="sp-camposol" src="/assets/camposol-white.webp" alt="Camposol" width="154" height="26" style="margin-right:72px"></div>
     ${phrase(true)}
     <div class="sp-stand">
       <div class="tag">${s ? "Estás en" : "Bienvenido a"}</div>
-      ${s ? `<div class="sp-id"><span>Stand</span><b>${pad(i + 1)}</b></div><span class="sp-chip tag">${esc(c.name)}</span>` : ""}
+      ${s ? `<div class="sp-id">${s.logo ? `<img class="sp-logo" src="${esc(s.logo)}" alt="">` : ""}<span>Stand</span><b>${pad(i + 1)}</b></div><span class="sp-chip tag">${esc(c.name)}</span>` : ""}
     </div>
     <div class="sp-bar"><div class="row-between tag"><span>Cargando votación…</span><span id="spT">00:03</span></div><div class="track"><i></i></div></div>
     ${hills("transparent")}`;
@@ -206,7 +206,7 @@ function renderLanding() {
     <section class="view">
       <header class="hero">${tiles()}
         <div class="wrap">
-          <span class="eyebrow">Semilla Lab 2026 <svg class="sprout"><use href="#i-sprout"/></svg></span>
+          <span class="eyebrow">SemillaLab 2026 <svg class="sprout"><use href="#i-sprout"/></svg></span>
           ${phrase(true)}
           <p class="lede">Recorre los stands, vota por las ideas que hacen el cambio y desbloquea premios.</p>
         </div>
@@ -239,7 +239,7 @@ function renderAuth(fromQr) {
       <div class="wrap grow"><form class="form" id="authForm" novalidate>
         ${fromQr ? `<p class="notice acc">${pi >= 0 ? `Stand ${pad(pi + 1)} te espera.` : ""} Regístrate y te llevamos directo a votar.</p>` : ""}
         <div class="tag">${reg ? "Registro" : "Volver a entrar"}</div>
-        <h1 class="form-title">${reg ? `Tu nombre<br>y tu cel.<br><em>Y a votar.</em>` : `Solo tu<br>celular.`}</h1>
+        <h1 class="form-title">${reg ? `Tus datos<br>y a votar.` : `Tu código<br>de trabajador.`}</h1>
         <p class="form-error" id="formError"></p>
         ${reg ? `
         <div class="field" id="f-name">
@@ -247,12 +247,12 @@ function renderAuth(fromQr) {
           <div class="input"><input type="text" id="name" autocomplete="name" placeholder="Rosa Quispe" maxlength="80" required></div>
           <span class="err"></span>
         </div>` : ""}
-        <div class="field" id="f-phone">
-          <label for="phone">Celular</label>
-          <div class="input"><span class="pre">+51</span><input type="tel" id="phone" inputmode="numeric" autocomplete="tel-national" placeholder="9xx xxx xxx" maxlength="11" required></div>
+        <div class="field" id="f-code">
+          <label for="code">Código de trabajador</label>
+          <div class="input"><input type="text" id="code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej. 123456" maxlength="20" required></div>
           <span class="err"></span>
         </div>
-        ${reg ? `<label class="check"><input type="checkbox" id="consent"> Acepto que Camposol use mi nombre y celular para esta votación y para la entrega de premios.</label>` : ""}
+        ${reg ? `<label class="check"><input type="checkbox" id="consent"> Acepto que Camposol use mi nombre y código de trabajador para esta votación y para la entrega de premios.</label>` : ""}
       </form></div>
       <div class="dock"><div class="dock-inner">
         <button class="btn" type="submit" form="authForm" id="authBtn" >${reg ? "Entrar a votar" : "Entrar"} ${icon("arrow")}</button>
@@ -262,12 +262,7 @@ function renderAuth(fromQr) {
 
   document.getElementById("swapTab").addEventListener("click", () => { state.authTab = reg ? "login" : "register"; renderAuth(fromQr); });
 
-  const phone = document.getElementById("phone");
-  phone.addEventListener("input", () => {
-    const d = phone.value.replace(/\D/g, "").slice(0, 9);
-    phone.value = d.replace(/(\d{3})(\d{0,3})(\d{0,3})/, (_, a, b, c) => [a, b, c].filter(Boolean).join(" "));
-  });
-  (document.getElementById("name") || phone).focus({ preventScroll: true });
+  (document.getElementById("name") || document.getElementById("code")).focus({ preventScroll: true });
 
   document.getElementById("authForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -277,11 +272,11 @@ function renderAuth(fromQr) {
       f.classList.toggle("has-error", !!msg); f.querySelector(".err").textContent = msg || "";
     };
     $err.classList.remove("show");
-    const digits = phone.value.replace(/\D/g, "");
     const nameVal = document.getElementById("name")?.value.trim() ?? "";
+    const codeVal = document.getElementById("code").value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
     let bad = false;
     if (reg && (nameVal.length < 3 || !/\s/.test(nameVal))) { setFieldErr("f-name", "× Escribe nombre y apellido."); bad = true; } else setFieldErr("f-name");
-    if (!/^9\d{8}$/.test(digits)) { setFieldErr("f-phone", "× 9 dígitos y empieza con 9."); bad = true; } else setFieldErr("f-phone");
+    if (codeVal.length < 3) { setFieldErr("f-code", "× Escribe tu código de trabajador."); bad = true; } else setFieldErr("f-code");
     if (reg && !document.getElementById("consent").checked) { $err.textContent = "× Marca la autorización para continuar."; $err.classList.add("show"); bad = true; }
     if (bad) return;
 
@@ -290,8 +285,8 @@ function renderAuth(fromQr) {
     btn.querySelector("use").setAttribute("href", "#i-load");
     try {
       const data = reg
-        ? await api("/api/register", { method: "POST", body: { name: nameVal, phone: digits, consent: true } })
-        : await api("/api/login", { method: "POST", body: { phone: digits } });
+        ? await api("/api/register", { method: "POST", body: { name: nameVal, code: codeVal, consent: true } })
+        : await api("/api/login", { method: "POST", body: { code: codeVal } });
       setSession(data.user);
       if (data.existing) toast(`Ya estabas registrado, ${firstName(data.user.name)}.`);
       const p = load(LS_PENDING);
@@ -318,7 +313,7 @@ function prizeCard(z, i) {
   const st = prizeStyle(z.key);
   const state_ = z.claimed ? "claimed" : z.unlocked ? "ready" : "locked";
   const foot = z.claimed ? `<span class="pz-foot tag">✓ Canjeado ${hhmm(z.claimedAt)}</span>`
-    : z.unlocked ? `<span class="pz-foot tag go">Ver vale →</span>`
+    : z.unlocked ? `<span class="pz-foot tag go">${z.ticket ? `N° ${z.ticket} · ` : ""}Ver vale →</span>`
     : `<span class="pz-foot tag">Faltan ${pad(z.missing)}</span><span class="pz-bar"><i style="width:${Math.round(((z.at - z.missing) / z.at) * 100)}%"></i></span>`;
   return `<button class="prize ${state_}" style="${prizeStyleAttr(z.key)};--i:${i}" data-prize="${z.key}" aria-label="${esc(z.name)}: ${state_ === "ready" ? "listo para canjear" : state_ === "claimed" ? "canjeado" : `faltan ${z.missing} stands`}">
     <span class="pz-top tag"><span>${pad(z.at)} stands</span>${z.claimed ? icon("check", "pz-tick") : ""}</span>
@@ -332,7 +327,7 @@ function tileHtml(s, i) {
   const v = state.votes[s.id];
   return `<button class="tile ${v ? "voted" : ""}" style="${accentStyle(i)};--i:${i}" data-stand="${esc(s.id)}" aria-label="Stand ${pad(i + 1)}, ${esc(s.name)}${v ? `, votado con ${v.stars}` : ""}">
     <span class="tile-top tag"><span>Stand</span>${v ? `<span class="score">${v.stars}/5</span>` : `<span class="swatch"></span>`}</span>
-    <span class="num">${pad(i + 1)}</span>
+    <span class="num-row"><span class="num">${pad(i + 1)}</span>${s.logo ? `<img class="logo" src="${esc(s.logo)}" alt="" loading="lazy">` : ""}</span>
     <span class="name">${esc(s.name)}</span>
     ${v ? icon("check", "tick") : ""}
   </button>`;
@@ -343,11 +338,11 @@ async function renderHome() {
     <section class="view"><div class="wrap home home-grid">
       <aside>
         <div class="hello">¡Hola, ${firstName(state.session.name)}! <svg class="sprout"><use href="#i-sprout"/></svg></div>
-        <button class="qv" id="scanBtn">${icon("scan")}<span><b>Quiero votar</b><span class="tag">Escanea el QR o toca un stand</span></span></button>
+        <button class="qv" id="scanBtn">${icon("scan")}<span><b>Quiero votar</b><span class="tag">Escanea el QR del stand</span></span></button>
         <div class="harvest" id="harvest"><div class="tag">Tu cosecha</div><div class="skel" style="height:96px;margin-top:10px"></div></div>
       </aside>
       <section>
-        <div class="grid-head"><h2>Stands</h2><span class="tag" id="listCount"></span></div>
+        <div class="grid-head"><h2>Mis votos</h2><span class="tag" id="listCount"></span></div>
         <div class="grid" id="grid">${Array.from({ length: 6 }, () => `<div class="skel skel-tile"></div>`).join("")}</div>
       </section>
     </div>${brandBand()}</section>`;
@@ -382,9 +377,13 @@ async function renderHome() {
     document.getElementById("grid").innerHTML = `<div class="empty tag">Aún no hay stands publicados.</div>`;
     return;
   }
-  // Agrupados por categoría: un título con el color del grupo antes de sus stands.
-  document.getElementById("grid").innerHTML = state.stands.map((s, i) =>
-    (s.team && s.team !== state.stands[i - 1]?.team ? `<div class="grid-cat" style="${accentStyle(i)}"><i></i>${esc(s.team)}</div>` : "") + tileHtml(s, i)).join("");
+  // Solo aparecen los stands que la persona ya votó (se descubren escaneando su QR),
+  // agrupados por categoría con el color del grupo.
+  const voted = state.stands.map((s, i) => [s, i]).filter(([s]) => state.votes[s.id]);
+  document.getElementById("grid").innerHTML = voted.length
+    ? voted.map(([s, i], k) =>
+        (s.team && s.team !== voted[k - 1]?.[0].team ? `<div class="grid-cat" style="${accentStyle(i)}"><i></i>${esc(s.team)}</div>` : "") + tileHtml(s, i)).join("")
+    : `<div class="empty-votes"><b>Aún no votas ningún stand.</b><span class="tag">Acércate a un stand y escanea su QR con el botón <b>Quiero votar</b>.</span></div>`;
   document.querySelectorAll("[data-stand]").forEach((el) =>
     el.addEventListener("click", () => go(`/?stand=${encodeURIComponent(el.dataset.stand)}`)));
 }
@@ -414,7 +413,7 @@ async function renderStand(id) {
     <section class="view" style="${accentStyle(idx)}">
       <header class="st-hero"><div class="wrap">
         <div class="row-between tag"><button class="back tag" id="backBtn">${icon("back")} Mi cosecha</button><span>${esc(c.name)}</span></div>
-        <div class="st-huge" aria-hidden="true">${pad(idx + 1)}</div>
+        <div class="st-top">${s.logo ? `<img class="st-logo" src="${esc(s.logo)}" alt="Logo ${esc(s.name)}">` : ""}<div class="st-huge" aria-hidden="true">${pad(idx + 1)}</div></div>
         <div class="tag">Stand ${pad(idx + 1)} · ${esc(s.team)}</div>
         <h1 class="st-name">${esc(s.name)}</h1>
         ${s.pitch ? `<p class="st-pitch">${esc(s.pitch)}</p>` : ""}
@@ -428,8 +427,6 @@ async function renderStand(id) {
         <div class="verdict" id="verdict"><b></b><span></span></div>
         <div class="vote-h tag"><span>Lo más fuerte</span><span class="dim">Opcional · máx. 2</span></div>
         <div class="chips">${TAGS.map(([k, l]) => `<button class="chip" data-tag="${k}" aria-pressed="false" ${open ? "" : "disabled"}>${l}</button>`).join("")}</div>
-        <label class="comment"><span class="tag">Comentarios (opcional)</span>
-          <textarea id="comment" rows="2" maxlength="280" placeholder="¿Qué te gustó o qué mejorarías?" ${open ? "" : "disabled"}>${esc(prev?.comment || "")}</textarea></label>
       </div></div>
       <div class="dock"><div class="dock-inner">
         ${open ? `<button class="btn" id="voteBtn" disabled>${prev ? "Actualizar voto" : "Votar"} ${icon("arrow")}</button>`
@@ -442,10 +439,8 @@ async function renderStand(id) {
   const chips = [...document.querySelectorAll(".chip")];
   const $verdict = document.getElementById("verdict");
   const voteBtn = document.getElementById("voteBtn");
-  const $comment = document.getElementById("comment");
-  const commentVal = () => $comment.value.replace(/\s+/g, " ").trim();
 
-  const dirty = () => grade && (!prev || prev.stars !== grade || [...tags].sort().join() !== [...(prev.tags || [])].sort().join() || commentVal() !== (prev.comment || ""));
+  const dirty = () => grade && (!prev || prev.stars !== grade || [...tags].sort().join() !== [...(prev.tags || [])].sort().join());
   const paint = () => {
     grades.forEach((b, i) => {
       const n = i + 1;
@@ -474,14 +469,13 @@ async function renderStand(id) {
     else { toast("Máximo 2."); return; }
     paint();
   }));
-  $comment.addEventListener("input", paint);
 
   voteBtn?.addEventListener("click", async () => {
     voteBtn.classList.add("is-loading"); voteBtn.disabled = true;
     voteBtn.querySelector("use").setAttribute("href", "#i-load");
     try {
       const before = votedCount();
-      const data = await api("/api/vote", { method: "POST", body: { standId: s.id, stars: grade, tags: [...tags], comment: commentVal() } });
+      const data = await api("/api/vote", { method: "POST", body: { standId: s.id, stars: grade, tags: [...tags] } });
       state.votes = data.votes;
       if (data.prizes) state.myPrizes = data.prizes;
       if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
@@ -501,7 +495,6 @@ function renderDone(idx, grade, wasUpdate, before) {
   // Premios que se desbloquearon con este voto.
   const unlocked = state.myPrizes.filter((z) => z.unlocked && z.at > before && z.at <= n);
   const nx = nextPrize(n);
-  const next = state.stands.map((s, i) => [s, i]).find(([s]) => !state.votes[s.id]);
   const main = unlocked[0];
   $app.innerHTML = `
     <section class="view" style="${main ? prizeStyleAttr(main.key) : accentStyle(idx)}">
@@ -517,13 +510,11 @@ function renderDone(idx, grade, wasUpdate, before) {
       </div></div>
       <div class="dock"><div class="dock-inner actions">
         ${main ? `<button class="btn" id="goVale" style="${prizeStyleAttr(main.key)}">Ver mi vale ${icon("arrow")}</button>` : ""}
-        ${next ? `<button class="btn ${main ? "line" : ""}" id="goNext" style="${accentStyle(next[1])}">Stand ${pad(next[1] + 1)} ${icon("arrow")}</button>` : ""}
-        ${main ? "" : `<button class="btn line" id="scanNext">Escanear QR ${icon("scan")}</button>`}
+        <button class="btn ${main ? "line" : ""}" id="scanNext">Escanear otro stand ${icon("scan")}</button>
         <button class="link-btn" id="goHome">Ver mi cosecha →</button>
       </div></div>
     </section>`;
   document.getElementById("goVale")?.addEventListener("click", () => go(`/?v=vale&p=${main.key}`));
-  document.getElementById("goNext")?.addEventListener("click", () => go(`/?stand=${encodeURIComponent(next[0].id)}`));
   document.getElementById("scanNext")?.addEventListener("click", openScanner);
   document.getElementById("goHome").addEventListener("click", () => go("/"));
 }
@@ -544,15 +535,16 @@ async function renderVale(key) {
     el.className = `vale-status ${claimed ? "done" : ""}`;
     el.innerHTML = claimed
       ? `<b>✓ Canjeado</b><span class="tag">${hhmm(at)} · ¡Disfrútalo!</span>`
-      : `<b><i class="blink"></i>Muéstralo en el puesto</b><span class="tag">El staff lo marca como entregado</span>`;
+      : `<b><i class="blink"></i>Muéstralo en el puesto</b><span class="tag">${z.ticket ? `Tachan el N° ${z.ticket} en la hoja y te entregan tu ${esc(z.name.toLowerCase())}` : "El staff lo marca como entregado"}</span>`;
   };
   $app.innerHTML = `
     <section class="view vale" style="${prizeStyleAttr(z.key)}">
       <div class="wrap grow vale-in">
-        <div class="row-between tag vale-row"><span>Vale · nivel ${pad(z.at)} stands</span><span>Semilla Lab</span></div>
+        <div class="row-between tag vale-row"><span>Vale · nivel ${pad(z.at)} stands</span><span>SemillaLab</span></div>
         <h1 class="vale-name">${esc(z.name)}</h1>
         <img class="vale-img" src="${st.img}" alt="">
-        <div class="vale-who"><span class="tag">Para</span><b>${esc(state.session.name)}</b><span class="tag">${esc(st.unit)} · cel ${esc(state.session.phone.slice(-3).padStart(9, "•"))}</span></div>
+        ${z.ticket ? `<div class="vale-num" aria-label="Número de canje ${z.ticket}"><span class="tag">Número de canje</span><b>${z.ticket}</b></div>` : ""}
+        <div class="vale-who"><span class="tag">Para</span><b>${esc(state.session.name)}</b><span class="tag">${esc(st.unit)} · código ${esc(state.session.code || state.session.phone)}</span></div>
         <div id="valeStatus"></div>
       </div>
       <div class="dock"><div class="dock-inner"><button class="btn line" id="valeBack">${icon("back")} Mi cosecha</button></div></div>
@@ -616,7 +608,7 @@ async function openScanner() {
   const handle = (text) => {
     let id = null;
     try { id = new URL(text, location.origin).searchParams.get("stand"); } catch {}
-    if (!id) { toast("Ese QR no es de un stand de Semilla Lab."); return false; }
+    if (!id) { toast("Ese QR no es de un stand de SemillaLab."); return false; }
     if (navigator.vibrate) navigator.vibrate(30);
     close();
     go(`/?stand=${encodeURIComponent(id)}`, { splash: true });

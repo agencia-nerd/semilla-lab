@@ -82,7 +82,7 @@ function renderShell() {
         ${st.prizes.map((p) => `<button data-k="${p.key}" style="${sAttr(p.key)}" aria-pressed="${st.booth === p.key}"><img src="${prizeStyle(p.key).img}" alt="">${esc(p.name)}</button>`).join("")}
       </div>
       <div class="search">
-        <div class="input"><input id="q" type="search" placeholder="Buscar nombre o últimos dígitos del cel" autocomplete="off" value="${esc(st.q)}"></div>
+        <div class="input"><input id="q" type="search" placeholder="N° del vale, nombre o código de trabajador" autocomplete="off" value="${esc(st.q)}"></div>
       </div>
       <div class="meta tag"><span id="metaL"></span><span id="metaR"></span></div>
       <div class="people" id="people"></div>
@@ -115,17 +115,17 @@ function personCard(p) {
     primary = z.claimed
       ? `<div class="done-msg"><span>✓ Ya recibió ${esc(z.name)}</span><span class="tag">${hhmm(z.claimedAt)}</span></div>`
       : z.unlocked
-        ? `<button class="btn" data-claim="${z.key}" style="${sAttr(z.key)}">Entregar ${esc(z.name)} ${arrow}</button>`
+        ? `<button class="btn" data-claim="${z.key}" style="${sAttr(z.key)}">Entregar ${esc(z.name)}${z.ticket ? ` · N° ${z.ticket}` : ""} ${arrow}</button>`
         : `<div class="lock-msg tag">Aún no: le faltan ${pad(z.missing)} stands para ${esc(z.name)}</div>`;
   }
   const pills = p.prizes.map((x) => {
     const cls = x.claimed ? "claimed" : x.unlocked ? "ready" : "locked";
-    const label = x.claimed ? `✓ ${hhmm(x.claimedAt)}` : x.unlocked ? "Entregar" : `${pad(x.at)}`;
+    const label = x.claimed ? `✓ ${hhmm(x.claimedAt)}` : x.unlocked ? (x.ticket ? `N° ${x.ticket}` : "Entregar") : `${pad(x.at)}`;
     return `<button class="pill ${cls} ${bp?.key === x.key ? "focus" : ""}" style="${sAttr(x.key)}" data-pill="${x.key}"><img src="${prizeStyle(x.key).img}" alt=""><span>${esc(x.name)}</span><span>${label}</span></button>`;
   }).join("");
   return `<article class="person" data-id="${p.id || p.phone}">
     <h3>${esc(p.name)}</h3>
-    <div class="sub tag">Cel ${esc(p.phoneMasked)} · ${pad(p.count)} stands votados</div>
+    <div class="sub tag">Código ${esc(p.phoneMasked)} · ${pad(p.count)} stands votados</div>
     ${primary ? `<div class="primary">${primary}</div>` : ""}
     <div class="pills">${pills}</div>
   </article>`;
@@ -167,7 +167,7 @@ function confirmModal(person, z) {
     <img src="${prizeStyle(z.key).img}" alt="">
     <div class="tag">Confirmar entrega</div>
     <h2>${esc(z.name)}</h2>
-    <p class="tag">Para <b>${esc(person.name)}</b><br>Cel ${esc(person.phoneMasked)}</p>
+    <p class="tag">Para <b>${esc(person.name)}</b><br>Código ${esc(person.phoneMasked)}</p>
     <div class="actions">
       <button class="btn" id="ok" style="${sAttr(z.key)}">Sí, entregado ${arrow}</button>
       <button class="btn line" id="no">Cancelar</button>

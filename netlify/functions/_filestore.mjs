@@ -22,11 +22,17 @@ export function fileStore(dir) {
         throw e;
       }
     },
-    async setJSON(key, value) {
+    async setJSON(key, value, { onlyIfNew } = {}) {
       await ready;
+      // Creación exclusiva (como onlyIfNew de Netlify Blobs): falla si el archivo ya existe.
+      if (onlyIfNew) {
+        try { await fs.writeFile(file(key), JSON.stringify(value), { flag: "wx" }); return { modified: true }; }
+        catch (e) { if (e.code === "EEXIST") return { modified: false }; throw e; }
+      }
       const tmp = `${file(key)}.${process.pid}.${Date.now()}.tmp`;
       await fs.writeFile(tmp, JSON.stringify(value));
       await fs.rename(tmp, file(key));
+      return { modified: true };
     },
     async delete(key) {
       await ready;
