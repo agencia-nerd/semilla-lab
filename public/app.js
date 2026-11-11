@@ -167,7 +167,7 @@ function renderTop() {
     ? `<span class="user-pill"><i></i>${firstName(state.session.name)}<button type="button" id="logoutBtn">Salir</button></span>`
     : `<img class="camposol-logo" src="/assets/camposol-white.webp" alt="Camposol" width="154" height="26">`;
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
-    if (confirm("¿Cerrar sesión? Podrás volver a entrar con tu celular.")) logout();
+    if (confirm("¿Cerrar sesión? Podrás volver a entrar con tu código de trabajador.")) logout();
   });
 }
 
@@ -599,7 +599,7 @@ async function openScanner() {
     scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
   } catch {
     close();
-    toast("No pudimos abrir la cámara. Toca el stand en la lista.");
+    toast("No pudimos abrir la cámara. Escanea el QR con la cámara de tu celular.");
     return;
   }
   video.srcObject = scanStream;
