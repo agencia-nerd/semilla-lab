@@ -106,7 +106,8 @@ export default async (req) => {
     });
     const csv = "﻿" + [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
     return new Response(csv, {
-      headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": 'attachment; filename="semilla-lab-votos.csv"' },
+      // no-store: sin esto la caché de SiteGround/navegador devolvía un CSV viejo (de las pruebas).
+      headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": 'attachment; filename="semilla-lab-votos.csv"', "cache-control": "no-store" },
     });
   }
 

@@ -38,8 +38,9 @@ const phrase = `<div class="phrase"><span>Cultiva</span><span>tu idea.</span><sp
 const API_BASE = location.hostname === "semilla-lab-camposol.netlify.app" ? "https://alonsom22.sg-host.com" : "";
 
 async function api(action, { method = "GET", body } = {}) {
-  const res = await fetch(`${API_BASE}/api/admin?action=${action}`, {
-    method, headers: { "content-type": "application/json", "x-admin-pin": st.pin }, body: body ? JSON.stringify(body) : undefined,
+  // `t` cambia en cada pedido: ninguna caché intermedia puede devolver una respuesta vieja.
+  const res = await fetch(`${API_BASE}/api/admin?action=${action}&t=${Date.now()}`, {
+    method, cache: "no-store", headers: { "content-type": "application/json", "x-admin-pin": st.pin }, body: body ? JSON.stringify(body) : undefined,
   });
   if (action === "export" && res.ok) return res.blob();
   const data = await res.json().catch(() => ({}));
